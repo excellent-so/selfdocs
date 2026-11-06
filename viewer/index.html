@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<!-- selfdocs viewer: one self-contained file, no external requests. -->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>selfdocs</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2016%2016'%20width='16'%20height='16'%20fill='currentColor'%3E%3Cstyle%3Esvg{color:%230a0a0a}@media%20(prefers-color-scheme:dark){svg{color:%23f2f2f2}}%3C/style%3E%3Cpath%20d='M2%201h12v14H2z'%20stroke='currentColor'%20stroke-width='2'%20fill='none'/%3E%3Crect%20x='5'%20y='4'%20width='6'%20height='2'/%3E%3Crect%20x='5'%20y='7'%20width='6'%20height='2'/%3E%3Crect%20x='5'%20y='10'%20width='2'%20height='3'/%3E%3C/svg%3E" />
+<script>
+// Light unless the reader chose dark (the kit's "ex-theme"; "selfdocs-theme" is the key before the kit).
+try { var t = localStorage.getItem("ex-theme") || localStorage.getItem("selfdocs-theme"); if (t === "dark") document.documentElement.classList.add("theme-dark"); } catch (e) {}
+</script>
+<style>
+/* The kit (@excellent-so/kit): tokens and parts. Written by `npx @excellent-so/kit sync viewer/index.html
+   --no-compat`; edit the kit, not this block. */
+/* excellent-kit:begin */
+/* @excellent-so/kit 0.2.1, MIT. Written by `excellent-kit sync`: edit the kit, not this block. */
+
+/* @excellent-so/kit: tokens.
+   Ink on white, amber for Verified only, proof red for Returned (and failed) only, zinc greys for everything
+   else, 4px corners on controls and 8px on surfaces. Light by default whatever the OS says; dark is opt-in
+   with `.theme-dark` (or `.dark`, or `data-theme="dark"`) on <html> or on any subtree. Density is one
+   attribute: `data-density="compact"`.
+
+   Names are `--color-*` and the like, so the same token means the same thing everywhere.
+   tokens.json is generated from this file (npm run tokens); the tests keep them in step. */
+
+:root,
+.theme-light,
+[data-theme="light"] {
+  color-scheme: light;
+
+  /* Faces. Geist and Geist Mono ship with the kit (fonts.css, OFL); Newsreader is optional (OFL, Google
+     Fonts) and falls back to Georgia. Everything falls back to the system. */
+  --font-sans: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, "Helvetica Neue", Arial, sans-serif;
+  --font-heading: "Newsreader", "Iowan Old Style", Georgia, "Times New Roman", serif;
+  --font-mono: "Geist Mono", ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Type, in rem so it follows the reader's font size. 12px is the floor. */
+  --text-2xs: 0.75rem;     /* 12: badges, table heads, captions */
+  --text-meta: 0.8125rem;  /* 13: meta lines, helper text */
+  --text-sm: 0.875rem;     /* 14: the app's body and table cells */
+  --text-ui: 0.9375rem;    /* 15: card copy, UI body outside the shell */
+  --text-base: 1rem;       /* 16: reading text */
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;      /* 24: a page title */
+  --text-display: 2.5rem;  /* 40: an empty page's headline (Newsreader) */
+
+  /* Space. One unit u = 8px; one line of body text b = 24px. Inside a component, multiples of u; between
+     blocks, the scale. */
+  --u: 0.5rem;
+  --s1: 0.5rem;   /* a label and its line */
+  --s2: 1rem;     /* a title and its meta */
+  --s3: 1.5rem;   /* a heading and its text; paragraphs */
+  --s4: 2rem;     /* text and the action under it */
+  --s5: 3rem;     /* a section's header and its content */
+  --s6: 4.5rem;   /* two large blocks */
+
+  /* Corners: controls and badges 4, inner panes 6, surfaces 8, rare large frames 12. */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+
+  /* Control heights. 44px everywhere by default (touch targets); compact density below. */
+  --control-h: 2.75rem;
+  --control-h-sm: 2.5rem;
+  --control-h-xs: 2.25rem;
+
+  /* Surfaces */
+  --color-background: #FBFBFB;
+  --color-foreground: #0E0E0E;
+  --color-card: #FFFFFF;
+  --color-muted: #F4F4F5;
+  --color-border: #E4E4E7;
+  --color-border-strong: #D4D4D8;
+  --color-field: #8A8A93;       /* form-field edges only: at least 3:1 on the page */
+  --color-input: #FFFFFF;       /* a field's background */
+  --color-ring: #0E0E0E;        /* the focus ring */
+
+  /* Text, ink then zinc */
+  --color-strong: #0E0E0E;
+  --color-body: #3F3F46;
+  --color-subtle: #63636E;
+  --color-faint: #71717B;
+  --color-icon-faint: #9D9D9D;  /* decorative icons only, never text */
+
+  /* Action */
+  --color-primary: #0E0E0E;
+  --color-primary-foreground: #FFFFFF;
+  --color-primary-hover: #2B2B2B;
+  --color-selection: #EBEBEB;
+
+  /* The two marks. Amber is for Verified (and the dither, a tag, a Copied state) and nothing else; proof red
+     is for Returned and failed and nothing else. Text on amber is ink; text on red is white, in both themes. */
+  --color-verified: #FFBF00;
+  --color-on-verified: #0E0E0E;
+  --color-returned: #CE2E1C;
+  --color-on-returned: #FFFFFF;
+  --color-returned-ink: #B42318; /* red text on the page (a failed line), 4.5:1 or better */
+
+  /* Elevation is for things that float (menus, popovers, a floating frame), never for static cards. */
+  --shadow-ring: rgb(0 0 0 / 0.06);
+  --shadow-color: rgb(0 0 0 / 0.06);
+  --shadow-surface-1: 0 0 0 1px var(--shadow-ring);
+  --shadow-surface-2: 0 0 0 1px var(--shadow-ring), 0 1px 1px -0.5px var(--shadow-color);
+  --shadow-surface-3: 0 0 0 1px var(--shadow-ring), 0 1px 1px -0.5px var(--shadow-color), 0 3px 3px -1.5px var(--shadow-color);
+  --shadow-surface-4: 0 0 0 1px var(--shadow-ring), 0 1px 1px -0.5px var(--shadow-color), 0 3px 3px -1.5px var(--shadow-color), 0 6px 6px -3px var(--shadow-color);
+  --shadow-surface-5: 0 0 0 1px var(--shadow-ring), 0 1px 1px -0.5px var(--shadow-color), 0 3px 3px -1.5px var(--shadow-color), 0 6px 6px -3px var(--shadow-color), 0 12px 12px -6px var(--shadow-color);
+
+  /* Motion */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 150ms;
+
+  /* Glyphs, drawn on a 2px grid, as masks in currentColor: the one arrow, the way back, a stepped check, a
+     cross. Use them with `mask: var(--glyph-check) center / contain no-repeat; background: currentColor`. */
+  --glyph-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 13 10'%3E%3Cpath d='M0 4h13v2H0zM7 0h2v2H7zM9 2h2v2H9zM9 6h2v2H9zM7 8h2v2H7z'/%3E%3C/svg%3E");
+  --glyph-arrow-back: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 13 10'%3E%3Cpath d='M0 4h13v2H0zM4 0h2v2H4zM2 2h2v2H2zM2 6h2v2H2zM4 8h2v2H4z'/%3E%3C/svg%3E");
+  --glyph-check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 10'%3E%3Cpath d='M0 4h2v2H0zM2 6h2v2H2zM4 8h2v2H4zM6 6h2v2H6zM8 4h2v2H8zM10 2h2v2h-2zM4 6h2v2H4z'/%3E%3C/svg%3E");
+  --glyph-cross: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M0 0h2v2H0zM2 2h2v2H2zM4 4h2v2H4zM6 6h2v2H6zM8 8h2v2H8zM8 0h2v2H8zM6 2h2v2H6zM2 6h2v2H2zM0 8h2v2H0z'/%3E%3C/svg%3E");
+}
+
+.theme-dark,
+.dark,
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --color-background: #131316;
+  --color-foreground: #F0F0F2;
+  --color-card: #1A1A1E;
+  --color-muted: #202024;
+  --color-border: #2E2E33;
+  --color-border-strong: #3F3F46;
+  --color-field: #6B6B75;
+  --color-input: #1A1A1E;
+  --color-ring: #F0F0F2;
+
+  --color-strong: #F0F0F2;
+  --color-body: #C2C2C9;
+  --color-subtle: #A1A1AA;
+  --color-faint: #8A8A93;
+  --color-icon-faint: #5C5C66;
+
+  --color-primary: #F0F0F2;
+  --color-primary-foreground: #131316;
+  --color-primary-hover: #E2E2E6;
+  --color-selection: rgb(255 255 255 / 0.16);
+
+  --color-returned-ink: #F97066;
+
+  --shadow-ring: rgb(255 255 255 / 0.1);
+  --shadow-color: rgb(0 0 0 / 0.4);
+}
+
+/* Compact density (an admin console, a dense tool), on a mouse or trackpad only: touch keeps 44px. */
+@media (pointer: fine) {
+  [data-density="compact"] {
+    --control-h: 2.25rem;
+    --control-h-sm: 2rem;
+    --control-h-xs: 1.75rem;
+  }
+}
+
+/* @excellent-so/kit: components.
+   Plain CSS classes on the tokens (tokens.css), prefixed `ex-` so they sit beside a tool's own styles
+   without a clash. No framework and no build step: a page links tokens.css and kit.css (or inlines them with
+   `npx @excellent-so/kit sync`), and every part works in both themes and both densities.
+
+   The rules the parts keep:
+   - Amber is for Verified only, proof red for Returned or failed only. Every other state is an outline.
+   - A state never rests on colour alone: verdict and status badges carry a glyph.
+   - Buttons and fields have 4px corners and are 44px tall (36px in compact density, on a mouse).
+   - Surfaces are a 1px hairline and 8px corners, flat. Shadows are for things that float.
+   - One visible focus ring for everything a keyboard can reach. */
+
+/* --- Base (opt in: put `ex-page` on <body>, or use the parts inside your own page) --------------------- */
+
+/* Every kit part measures its border box, whatever the page around it does. */
+:where([class^="ex-"], [class*=" ex-"]),
+:where([class^="ex-"], [class*=" ex-"])::before,
+:where([class^="ex-"], [class*=" ex-"])::after { box-sizing: border-box; }
+/* The hidden attribute always hides a part, whatever display the part sets. */
+[hidden]:where([class^="ex-"], [class*=" ex-"]) { display: none !important; }
+
+.ex-page {
+  margin: 0;
+  background: var(--color-background);
+  color: var(--color-body);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  line-height: 1.25rem;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-wrap: break-word;
+}
+.ex-page ::selection { background: var(--color-selection); color: var(--color-strong); }
+/* The page's element rules weigh nothing (:where), so any kit class still sets its own margins and faces. */
+.ex-page :where(:focus-visible) { outline: 2px solid var(--color-ring); outline-offset: 2px; }
+.ex-page :where(h1, h2, h3, h4) { margin: 0; color: var(--color-strong); font-weight: 600; letter-spacing: -0.01em; text-wrap: balance; }
+.ex-page :where(p, ul, ol, dl, figure) { margin: 0; }
+.ex-page :where(code, kbd, pre) { font-family: var(--font-mono); }
+.ex-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.ex-skip { position: fixed; top: 8px; left: 8px; z-index: 100; padding: 8px 12px; border-radius: var(--radius-sm); background: var(--color-primary); color: var(--color-primary-foreground); transform: translateY(-200%); }
+.ex-skip:focus { transform: none; }
+
+/* --- Glyphs --------------------------------------------------------------------------------------- */
+
+.ex-glyph { display: inline-block; flex: none; width: 10px; height: 8px; background: currentColor; -webkit-mask: var(--glyph-check) center / contain no-repeat; mask: var(--glyph-check) center / contain no-repeat; }
+.ex-glyph--arrow { width: 13px; height: 10px; -webkit-mask-image: var(--glyph-arrow); mask-image: var(--glyph-arrow); }
+.ex-glyph--back { width: 13px; height: 10px; -webkit-mask-image: var(--glyph-arrow-back); mask-image: var(--glyph-arrow-back); }
+.ex-glyph--cross { width: 8px; height: 8px; -webkit-mask-image: var(--glyph-cross); mask-image: var(--glyph-cross); }
+.ex-glyph--open { width: 7px; height: 7px; background: none; box-shadow: inset 0 0 0 1.25px currentColor; -webkit-mask: none; mask: none; }
+
+/* --- Links ---------------------------------------------------------------------------------------- */
+
+.ex-link { color: var(--color-strong); font-weight: 500; text-decoration: underline; text-decoration-color: var(--color-border-strong); text-decoration-thickness: 1px; text-underline-offset: 0.3em; transition: text-decoration-color var(--dur-fast) var(--ease-out-expo); }
+.ex-link:hover { text-decoration-color: currentColor; }
+.ex-link--quiet { color: var(--color-subtle); font-weight: inherit; }
+.ex-link--quiet:hover { color: var(--color-strong); }
+/* The one arrow, on every "learn more" link and on links that leave the page. */
+.ex-link--arrow { text-decoration: none; display: inline-flex; align-items: center; gap: 8px; }
+.ex-link--arrow::after { content: ""; width: 13px; height: 10px; background: currentColor; -webkit-mask: var(--glyph-arrow) center / contain no-repeat; mask: var(--glyph-arrow) center / contain no-repeat; transition: transform var(--dur-fast) var(--ease-out-expo); }
+.ex-link--arrow:hover::after { transform: translateX(3px); }
+
+/* --- Buttons -------------------------------------------------------------------------------------- */
+
+.ex-btn {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: var(--control-h);
+  padding: 0 16px;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 550;
+  letter-spacing: 0.005em;
+  line-height: 1;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out-expo), border-color var(--dur-fast) var(--ease-out-expo), color var(--dur-fast) var(--ease-out-expo);
+}
+.ex-btn:hover { background: var(--color-primary-hover); border-color: var(--color-primary-hover); }
+.ex-btn:focus-visible { outline: 2px solid var(--color-ring); outline-offset: 2px; }
+.ex-btn:disabled, .ex-btn[aria-disabled="true"] { opacity: 0.5; pointer-events: none; }
+.ex-btn--outline, .ex-btn--secondary { background: transparent; border-color: var(--color-border-strong); color: var(--color-strong); }
+.ex-btn--outline:hover, .ex-btn--secondary:hover { background: transparent; border-color: var(--color-strong); }
+.ex-btn--ghost { background: transparent; border-color: transparent; color: var(--color-body); }
+.ex-btn--ghost:hover { background: var(--color-muted); border-color: transparent; color: var(--color-strong); }
+.ex-btn--muted { background: var(--color-muted); border-color: transparent; color: var(--color-strong); }
+.ex-btn--muted:hover { background: var(--color-border); border-color: transparent; }
+.ex-btn--danger { background: var(--color-returned); border-color: var(--color-returned); color: var(--color-on-returned); }
+.ex-btn--danger:hover { background: color-mix(in srgb, var(--color-returned) 88%, #000); border-color: transparent; }
+.ex-btn--link { height: auto; min-height: 44px; padding: 0; border: 0; background: none; color: var(--color-strong); font-weight: 500; text-decoration: underline; text-decoration-color: var(--color-border-strong); text-underline-offset: 0.3em; }
+.ex-btn--link:hover { background: none; text-decoration-color: currentColor; }
+.ex-btn--sm { height: var(--control-h-sm); padding: 0 12px; gap: 6px; font-size: var(--text-meta); }
+.ex-btn--xs { height: 24px; padding: 0 8px; gap: 4px; font-size: var(--text-2xs); }
+.ex-btn--lg { height: 3.25rem; padding: 0 26px; font-size: var(--text-base); }
+.ex-btn--icon { width: var(--control-h); padding: 0; }
+.ex-btn--sm.ex-btn--icon { width: var(--control-h-sm); }
+/* Small controls keep a 44px target with an invisible hit area. */
+.ex-btn--sm::after, .ex-btn--xs::after { content: ""; position: absolute; inset: -10px 0; }
+/* A toggle that's on: the muted fill. A button that just copied: the kit's amber, for a moment. */
+.ex-btn[aria-pressed="true"]:not(.ex-btn--link) { background: var(--color-muted); border-color: var(--color-border-strong); color: var(--color-strong); }
+.ex-btn.is-copied { background: var(--color-verified); border-color: var(--color-verified); color: var(--color-on-verified); }
+.ex-btn .ex-glyph--arrow { transition: transform var(--dur-fast) var(--ease-out-expo); }
+.ex-btn:hover .ex-glyph--arrow { transform: translateX(3px); }
+
+/* A row of controls */
+.ex-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
+/* --- Badges --------------------------------------------------------------------------------------- */
+/* 12px medium, sentence case, 20px tall, 4px corners. Verdicts and states carry a glyph (::before). */
+
+.ex-badge {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  height: 20px;
+  padding: 0 6px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+}
+.ex-badge::before { display: none; content: ""; flex: none; width: 10px; height: 8px; background: currentColor; -webkit-mask: var(--glyph-check) center / contain no-repeat; mask: var(--glyph-check) center / contain no-repeat; }
+.ex-badge--outline, .ex-badge--info { background: transparent; border-color: var(--color-border-strong); color: var(--color-strong); }
+.ex-badge--neutral { background: color-mix(in srgb, var(--color-muted) 60%, transparent); border-color: var(--color-border); color: var(--color-subtle); }
+.ex-badge--count { padding: 0 4px; background: var(--color-muted); color: var(--color-subtle); font-variant-numeric: tabular-nums; }
+/* The verdicts */
+.ex-badge--verified { background: var(--color-verified); color: var(--color-on-verified); }
+.ex-badge--returned { background: var(--color-returned); color: var(--color-on-returned); }
+.ex-badge--verified::before, .ex-badge--returned::before, .ex-badge--danger::before, .ex-badge--success::before, .ex-badge--warning::before, .ex-badge--unchecked::before { display: block; }
+.ex-badge--returned::before { width: 10px; -webkit-mask-image: var(--glyph-arrow-back); mask-image: var(--glyph-arrow-back); }
+/* The states: broken in red with a cross; done as an ink outline with a check; not yet as an open square */
+.ex-badge--danger { background: var(--color-returned); color: var(--color-on-returned); }
+.ex-badge--danger::before { width: 8px; -webkit-mask-image: var(--glyph-cross); mask-image: var(--glyph-cross); }
+.ex-badge--success { background: transparent; border-color: var(--color-border-strong); color: var(--color-strong); }
+.ex-badge--warning, .ex-badge--unchecked { background: transparent; border-color: var(--color-border-strong); color: var(--color-body); }
+.ex-badge--warning::before, .ex-badge--unchecked::before { width: 7px; height: 7px; background: none; box-shadow: inset 0 0 0 1.25px currentColor; -webkit-mask: none; mask: none; }
+.ex-badge--unchecked { color: var(--color-subtle); }
+/* A label in caps, for a badge that is a mark rather than data. */
+.ex-badge--caps { height: 24px; padding: 0 10px; border-radius: 3px; font-family: var(--font-mono); font-size: var(--text-2xs); letter-spacing: 0.07em; text-transform: uppercase; }
+/* A tag: the kit's amber, for a small brand label (New, Beta). Never a state. */
+.ex-tag { display: inline-flex; align-items: center; height: 20px; padding: 0 6px; border-radius: var(--radius-sm); background: var(--color-verified); color: var(--color-on-verified); font-family: var(--font-mono); font-size: var(--text-2xs); letter-spacing: 0.06em; text-transform: uppercase; }
+
+/* --- Surfaces: card, alert, empty state -------------------------------------------------------------- */
+
+.ex-card { display: flex; flex-direction: column; gap: 24px; padding: 24px 0; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-card); color: var(--color-foreground); }
+.ex-card > * { padding-inline: 24px; }
+.ex-card__header { display: grid; gap: 8px; }
+.ex-card__header:has(.ex-card__action) { grid-template-columns: 1fr auto; }
+.ex-card__title { color: var(--color-strong); font-size: var(--text-base); font-weight: 600; line-height: 1.5rem; }
+.ex-card__desc { color: var(--color-subtle); font-size: var(--text-sm); line-height: 1.25rem; }
+.ex-card__action { grid-column: 2; grid-row: 1 / span 2; align-self: start; }
+.ex-card__footer { display: flex; align-items: center; gap: 8px; }
+.ex-card__media { display: block; width: 100%; margin-top: -24px; padding: 0 !important; overflow: hidden; border-bottom: 1px solid var(--color-border); border-radius: var(--radius-lg) var(--radius-lg) 0 0; background: var(--color-muted); }
+.ex-card__media > img, .ex-card__media > video { display: block; width: 100%; height: 100%; object-fit: cover; }
+.ex-card--tight .ex-card__media { margin-top: -16px; }
+.ex-card--tight { gap: 12px; padding: 16px 0; }
+.ex-card--tight > * { padding-inline: 16px; }
+/* A raised surface: something that floats (a menu, a popover, a frame over the page). */
+.ex-float { border-radius: var(--radius-lg); background: var(--color-card); box-shadow: var(--shadow-surface-4); }
+
+.ex-alert { display: grid; grid-template-columns: 0 1fr; align-items: start; row-gap: 2px; padding: 12px 16px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-card); color: var(--color-foreground); font-size: var(--text-sm); }
+.ex-alert:has(> .ex-glyph, > svg) { grid-template-columns: 16px 1fr; column-gap: 12px; }
+.ex-alert > .ex-glyph, .ex-alert > svg { margin-top: 5px; }
+.ex-alert__title { grid-column: 2; font-weight: 500; letter-spacing: -0.005em; }
+.ex-alert__desc { grid-column: 2; color: var(--color-subtle); line-height: 1.25rem; }
+.ex-alert__close { grid-column: 3; grid-row: 1; margin: -6px -8px 0 8px; }
+.ex-alert:has(> .ex-alert__close) { grid-template-columns: 0 1fr auto; }
+.ex-alert:has(> .ex-glyph, > svg):has(> .ex-alert__close) { grid-template-columns: 16px 1fr auto; }
+.ex-alert--danger { border-color: color-mix(in srgb, var(--color-returned) 40%, var(--color-border)); color: var(--color-returned-ink); }
+.ex-alert--danger .ex-alert__desc { color: var(--color-returned-ink); opacity: 0.9; }
+
+.ex-empty { padding: 32px 16px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-card); text-align: center; }
+.ex-empty--bare { padding: 12px 0; border: 0; background: none; }
+.ex-empty__title { color: var(--color-strong); font-size: var(--text-sm); font-weight: 500; line-height: 1.25rem; }
+.ex-empty__text { margin-top: 4px; color: var(--color-subtle); font-size: var(--text-sm); line-height: 1.25rem; }
+.ex-empty__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 16px; }
+/* A whole page with nothing on it yet: the headline face. */
+.ex-empty--page { max-width: 36rem; margin-inline: auto; padding: 24px 0; border: 0; background: none; }
+.ex-empty--page .ex-empty__title { font-family: var(--font-heading); font-size: 2rem; font-weight: 400; line-height: 1.08; letter-spacing: -0.02em; text-wrap: balance; }
+.ex-empty--page .ex-empty__text { margin-top: 12px; font-size: var(--text-ui); line-height: 1.6; }
+.ex-empty--page .ex-empty__actions { margin-top: 28px; gap: 12px; }
+@media (min-width: 640px) { .ex-empty--page .ex-empty__title { font-size: var(--text-display); } }
+
+/* --- Heads: a page, a section, tabs ------------------------------------------------------------------ */
+
+.ex-page-header { display: flex; flex-direction: column; gap: 12px; }
+.ex-page-header__title { color: var(--color-strong); font-family: var(--font-sans); font-size: var(--text-2xl); font-weight: 600; line-height: 2rem; letter-spacing: -0.02em; }
+.ex-page-header__desc { margin-top: 4px; max-width: 72ch; color: var(--color-subtle); font-size: var(--text-sm); line-height: 1.25rem; }
+.ex-page-header__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+@media (min-width: 640px) { .ex-page-header { flex-direction: row; align-items: flex-start; justify-content: space-between; gap: 24px; } }
+
+.ex-section-header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 16px; }
+.ex-section-header__title { display: flex; align-items: center; gap: 6px; color: var(--color-strong); font-size: var(--text-base); font-weight: 600; line-height: 1.5rem; }
+.ex-section-header__desc { margin-top: 2px; max-width: 80ch; color: var(--color-subtle); font-size: var(--text-meta); line-height: 1.25rem; }
+
+.ex-tabs { display: flex; gap: 2px; min-width: max-content; padding: 0 4px; border-bottom: 1px solid var(--color-border); }
+.ex-tabs-scroll { margin: 0 -4px; overflow-x: auto; overflow-y: hidden; }
+.ex-tab { display: inline-flex; align-items: center; gap: 6px; height: 36px; margin-bottom: -1px; padding: 0 10px; border: 0; border-bottom: 2px solid transparent; border-radius: var(--radius-md) var(--radius-md) 0 0; background: none; color: var(--color-subtle); font: inherit; font-size: var(--text-sm); text-decoration: none; cursor: pointer; transition: color var(--dur-fast), border-color var(--dur-fast); }
+.ex-tab:hover { border-bottom-color: var(--color-border-strong); color: var(--color-strong); }
+.ex-tab[aria-current="page"], .ex-tab[aria-selected="true"] { border-bottom-color: var(--color-strong); color: var(--color-strong); font-weight: 500; }
+.ex-tab:focus-visible { outline: none; background: var(--color-muted); }
+
+/* --- Numbers and facts ------------------------------------------------------------------------------ */
+
+.ex-metrics { --metric-min: 10rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(var(--metric-min), 100%), 1fr)); gap: 12px; }
+.ex-metric { min-width: 0; padding: 12px 16px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-card); }
+.ex-metric__label { color: var(--color-subtle); font-size: var(--text-meta); font-weight: 500; line-height: 1.25rem; }
+.ex-metric__value { margin-top: 4px; color: var(--color-strong); font-size: var(--text-2xl); font-weight: 600; line-height: 2rem; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+.ex-metric__detail { margin-top: 4px; color: var(--color-subtle); font-size: var(--text-2xs); line-height: 1rem; }
+
+.ex-details { --detail-label: 11rem; margin: 0; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-card); font-size: var(--text-sm); line-height: 1.25rem; }
+.ex-details > div { display: grid; gap: 2px; padding: 10px 16px; }
+.ex-details > div + div { border-top: 1px solid var(--color-border); }
+.ex-details dt { color: var(--color-subtle); }
+.ex-details dd { min-width: 0; margin: 0; color: var(--color-strong); overflow-wrap: anywhere; }
+@media (min-width: 640px) { .ex-details > div { grid-template-columns: var(--detail-label) minmax(0, 1fr); gap: 16px; } }
+[data-density="compact"] .ex-details > div { padding-block: 8px; }
+
+/* --- Tables --------------------------------------------------------------------------------------- */
+/* A bordered card, a tinted head band, a hairline under every row, numbers right-aligned in tabular
+   figures. Wrap the table in .ex-table-frame (and .ex-table-scroll for wide ones). */
+
+.ex-table-frame { overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-card); }
+.ex-table-scroll { position: relative; width: 100%; overflow-x: auto; }
+.ex-table { width: 100%; border-collapse: collapse; caption-side: bottom; font-size: var(--text-sm); line-height: 1.25rem; }
+.ex-table thead { background: color-mix(in srgb, var(--color-muted) 60%, transparent); }
+.ex-table th { height: 36px; padding: 0 12px; border-bottom: 1px solid var(--color-border); color: var(--color-subtle); font-size: var(--text-2xs); font-weight: 500; line-height: 1rem; text-align: left; white-space: nowrap; vertical-align: middle; }
+.ex-table td { padding: 10px 12px; border-bottom: 1px solid var(--color-border); color: var(--color-body); vertical-align: middle; }
+.ex-table tbody tr:last-child td { border-bottom: 0; }
+.ex-table tbody tr { transition: background-color var(--dur-fast); }
+.ex-table tbody tr:hover { background: color-mix(in srgb, var(--color-muted) 50%, transparent); }
+.ex-table tr[aria-selected="true"] { background: var(--color-muted); }
+.ex-table .ex-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ex-table .ex-shrink { width: 1%; white-space: nowrap; }
+.ex-table th[aria-sort] { cursor: pointer; user-select: none; }
+.ex-table th[aria-sort="ascending"]::after { content: " \2191"; }
+.ex-table th[aria-sort="descending"]::after { content: " \2193"; }
+/* The first cell: a title, an optional meta line, and one clamped muted line (full text on hover). */
+.ex-cell-title { color: var(--color-strong); font-weight: 500; }
+.ex-cell-meta { color: var(--color-subtle); font-size: var(--text-meta); }
+.ex-cell-clamp { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; color: var(--color-subtle); font-size: var(--text-meta); overflow-wrap: anywhere; }
+.ex-cell-empty { color: var(--color-faint); }
+.ex-id { font-family: var(--font-mono); font-size: var(--text-2xs); color: var(--color-subtle); }
+
+/* --- Forms ---------------------------------------------------------------------------------------- */
+
+.ex-field { display: grid; align-content: start; gap: 6px; }
+.ex-label { color: var(--color-strong); font-size: var(--text-sm); font-weight: 500; line-height: 1.25rem; }
+.ex-label .ex-optional { color: var(--color-subtle); font-weight: 400; }
+.ex-hint { color: var(--color-subtle); font-size: var(--text-meta); line-height: 1.25rem; }
+.ex-error { color: var(--color-returned-ink); font-size: var(--text-meta); line-height: 1.25rem; }
+[data-density="compact"] .ex-label { font-size: var(--text-meta); line-height: 1rem; }
+[data-density="compact"] .ex-hint, [data-density="compact"] .ex-error { font-size: var(--text-2xs); line-height: 1rem; }
+
+.ex-input, .ex-select, .ex-textarea {
+  width: 100%;
+  min-width: 0;
+  height: var(--control-h);
+  padding: 4px 12px;
+  border: 1px solid var(--color-field);
+  border-radius: var(--radius-sm);
+  background: var(--color-input);
+  color: var(--color-strong);
+  font: inherit;
+  font-size: var(--text-base);
+  font-weight: 450;
+  transition: border-color var(--dur-fast), box-shadow var(--dur-fast);
+}
+.ex-input::placeholder, .ex-textarea::placeholder { color: var(--color-faint); }
+.ex-input:focus-visible, .ex-select:focus-visible, .ex-textarea:focus-visible { outline: none; border-color: var(--color-ring); box-shadow: 0 0 0 1px var(--color-background), 0 0 0 3px var(--color-ring); }
+.ex-input[aria-invalid="true"], .ex-select[aria-invalid="true"], .ex-textarea[aria-invalid="true"] { border-color: var(--color-returned); }
+.ex-input:disabled, .ex-select:disabled, .ex-textarea:disabled { opacity: 0.5; cursor: not-allowed; }
+.ex-textarea { height: auto; min-height: 6rem; padding: 8px 12px; line-height: 1.5; resize: vertical; }
+.ex-select { appearance: none; padding-right: 32px; background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%); background-position: calc(100% - 16px) 50%, calc(100% - 11px) 50%; background-size: 5px 5px; background-repeat: no-repeat; }
+@media (min-width: 768px) { .ex-input, .ex-select, .ex-textarea { font-size: var(--text-sm); } }
+.ex-check { display: flex; align-items: flex-start; gap: 12px; }
+.ex-check input { width: 16px; height: 16px; margin: 2px 0 0; accent-color: var(--color-primary); }
+/* A search box with its count beside it */
+.ex-search { display: flex; align-items: center; gap: 12px; }
+.ex-search .ex-input { max-width: 20rem; }
+
+/* --- Code, keys and the command pill ----------------------------------------------------------------- */
+
+.ex-code { padding: 0.1em 0.35em; border: 1px solid var(--color-border); border-radius: 5px; background: var(--color-muted); color: var(--color-strong); font-family: var(--font-mono); font-size: 0.85em; overflow-wrap: anywhere; }
+.ex-pre { margin: 0; padding: 16px 18px; overflow-x: auto; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-muted); color: var(--color-strong); font-family: var(--font-mono); font-size: var(--text-meta); line-height: 1.7; }
+.ex-kbd { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 5px; border: 1px solid var(--color-border-strong); border-bottom-width: 2px; border-radius: var(--radius-sm); background: var(--color-card); color: var(--color-strong); font-family: var(--font-mono); font-size: var(--text-2xs); line-height: 1; }
+/* The install command: one line you can copy. The Copied state is the kit's amber. */
+.ex-cmd { display: inline-flex; align-items: center; max-width: 100%; height: var(--control-h); padding-left: 14px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-card); color: var(--color-strong); font-family: var(--font-mono); font-size: var(--text-meta); }
+.ex-cmd code { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ex-cmd code::before { content: "$ "; color: var(--color-faint); }
+.ex-cmd button { display: inline-flex; align-items: center; gap: 6px; height: 100%; margin-left: 14px; padding: 0 12px; border: 0; border-left: 1px solid var(--color-border); border-radius: 0 3px 3px 0; background: none; color: var(--color-subtle); font: inherit; font-family: var(--font-sans); font-size: var(--text-2xs); font-weight: 500; cursor: pointer; transition: background-color var(--dur-fast), color var(--dur-fast); }
+.ex-cmd button:hover { background: var(--color-muted); color: var(--color-strong); }
+.ex-cmd button.is-copied { background: var(--color-verified); color: var(--color-on-verified); }
+
+/* --- Loading ---------------------------------------------------------------------------------------- */
+
+.ex-skeleton { border-radius: var(--radius-md); background: var(--color-muted); animation: ex-pulse 1.6s ease-in-out infinite; }
+@keyframes ex-pulse { 50% { opacity: 0.55; } }
+@media (prefers-reduced-motion: reduce) { .ex-skeleton { animation: none; } }
+
+/* --- The dither: an amber texture, as a band or a fill ------------------------------------------------- */
+/* Bayer dots in amber on the page. A band is decoration: aria-hidden, never behind words. */
+.ex-dither { background-color: transparent; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6' shape-rendering='crispEdges' fill='%23FFBF00'%3E%3Crect width='2' height='2'/%3E%3Crect x='4' y='2' width='2' height='2'/%3E%3Crect x='2' y='4' width='2' height='2'/%3E%3C/svg%3E"); background-size: 6px 6px; }
+.ex-dither--dense { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6' shape-rendering='crispEdges' fill='%23FFBF00'%3E%3Crect width='2' height='2'/%3E%3Crect x='4' width='2' height='2'/%3E%3Crect x='2' y='2' width='2' height='2'/%3E%3Crect y='4' width='2' height='2'/%3E%3Crect x='4' y='4' width='2' height='2'/%3E%3C/svg%3E"); }
+
+/* --- Choosing: a segmented switch, a selectable list, chips, a search field --------------------------- */
+
+/* A few options, one on: a row of buttons in a muted track (role="group" or "tablist"; aria-pressed or
+   aria-selected on the one that's on). */
+.ex-segmented { display: inline-flex; gap: 2px; padding: 3px; border-radius: var(--radius-md); background: var(--color-muted); }
+.ex-segmented > button, .ex-segmented > a { display: inline-flex; align-items: center; gap: 6px; height: calc(var(--control-h-sm) - 8px); padding: 0 12px; border: 0; border-radius: var(--radius-sm); background: none; color: var(--color-subtle); font: inherit; font-size: var(--text-meta); font-weight: 500; text-decoration: none; white-space: nowrap; cursor: pointer; transition: color var(--dur-fast), background-color var(--dur-fast); }
+.ex-segmented > :hover { color: var(--color-strong); }
+.ex-segmented > [aria-pressed="true"], .ex-segmented > [aria-selected="true"], .ex-segmented > [aria-current="page"] { background: var(--color-card); color: var(--color-strong); box-shadow: var(--shadow-surface-2); }
+
+/* A list you pick one thing from (posts, screens, files): rows with a hairline between, the picked one muted. */
+.ex-list { margin: 0; padding: 0; list-style: none; }
+.ex-list > li + li { border-top: 1px solid var(--color-border); }
+.ex-row { display: grid; gap: 2px; width: 100%; padding: 10px 12px; border: 0; background: none; color: var(--color-body); font: inherit; text-align: left; text-decoration: none; cursor: pointer; transition: background-color var(--dur-fast); }
+.ex-row:hover { background: color-mix(in srgb, var(--color-muted) 60%, transparent); }
+.ex-row[aria-selected="true"], .ex-row[aria-current="page"], .ex-row[aria-current="true"] { background: var(--color-muted); box-shadow: inset 2px 0 0 var(--color-strong); }
+.ex-row:focus-visible { outline: 2px solid var(--color-ring); outline-offset: -2px; }
+
+/* A chip: a picked filter or tag, with an optional remove button. */
+.ex-chip { display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 4px 0 8px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-card); color: var(--color-strong); font-size: var(--text-2xs); font-weight: 500; white-space: nowrap; }
+.ex-chip:not(:has(button)) { padding-right: 8px; }
+.ex-chip button { position: relative; display: grid; place-items: center; width: 16px; height: 16px; padding: 0; border: 0; border-radius: 3px; background: none; color: var(--color-subtle); cursor: pointer; }
+.ex-chip button::before { content: ""; width: 8px; height: 8px; background: currentColor; -webkit-mask: var(--glyph-cross) center / contain no-repeat; mask: var(--glyph-cross) center / contain no-repeat; }
+.ex-chip button::after { content: ""; position: absolute; inset: -14px; }
+.ex-chip button:hover { background: var(--color-muted); color: var(--color-strong); }
+
+/* A search field: the magnifier drawn in, an optional clear button at the end. */
+.ex-search-field { position: relative; display: flex; align-items: center; min-width: 0; }
+.ex-search-field::before { content: ""; position: absolute; left: 12px; width: 13px; height: 13px; border: 1.5px solid var(--color-faint); border-radius: 50%; pointer-events: none; }
+.ex-search-field::after { content: ""; position: absolute; left: 23px; top: calc(50% + 4px); width: 5px; height: 1.5px; background: var(--color-faint); transform: rotate(45deg); pointer-events: none; }
+.ex-search-field .ex-input { padding-left: 34px; }
+.ex-search-field:has(button) .ex-input { padding-right: 40px; }
+.ex-search-field .ex-input::-webkit-search-cancel-button { display: none; }
+.ex-search-field button { position: absolute; right: 6px; display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: var(--radius-sm); background: none; color: var(--color-subtle); cursor: pointer; }
+.ex-search-field button::before { content: ""; width: 9px; height: 9px; background: currentColor; -webkit-mask: var(--glyph-cross) center / contain no-repeat; mask: var(--glyph-cross) center / contain no-repeat; }
+.ex-search-field button:hover { background: var(--color-muted); color: var(--color-strong); }
+/* A match inside text: a grey band under the words, never a colour. */
+.ex-hl { padding: 0 1px; border-radius: 2px; background: var(--color-selection); color: var(--color-strong); box-shadow: inset 0 -1.5px 0 var(--color-strong); }
+
+/* An avatar: initials or a picture in a square with 4px corners. */
+.ex-avatar { display: inline-grid; flex: none; place-items: center; width: 28px; height: 28px; overflow: hidden; border-radius: var(--radius-sm); background: var(--color-muted); color: var(--color-subtle); font-size: var(--text-2xs); font-weight: 600; text-transform: uppercase; }
+.ex-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.ex-avatar--sm { width: 20px; height: 20px; font-size: 0.625rem; }
+
+/* --- Things that float: a menu, a dialog, a side sheet, a toast ------------------------------------------ */
+/* The only parts with shadows. A dialog or sheet goes over a scrim; Escape and a click on the scrim close it. */
+
+.ex-menu { min-width: 12rem; padding: 4px; border-radius: var(--radius-lg); background: var(--color-card); box-shadow: var(--shadow-surface-4); }
+.ex-menu__label { padding: 8px 8px 4px; color: var(--color-faint); font-size: var(--text-2xs); font-weight: 500; }
+.ex-menu__sep { height: 1px; margin: 4px -4px; background: var(--color-border); }
+.ex-menu__item { display: flex; align-items: center; gap: 8px; width: 100%; height: 32px; padding: 0 8px; border: 0; border-radius: var(--radius-sm); background: none; color: var(--color-body); font: inherit; font-size: var(--text-sm); text-align: left; text-decoration: none; white-space: nowrap; cursor: pointer; }
+.ex-menu__item:hover, .ex-menu__item:focus-visible { outline: none; background: var(--color-muted); color: var(--color-strong); }
+.ex-menu__item[aria-checked="true"]::after { content: ""; width: 10px; height: 8px; margin-left: auto; background: currentColor; -webkit-mask: var(--glyph-check) center / contain no-repeat; mask: var(--glyph-check) center / contain no-repeat; }
+.ex-menu__item kbd { margin-left: auto; color: var(--color-faint); font-family: var(--font-mono); font-size: var(--text-2xs); }
+.ex-menu__item--danger { color: var(--color-returned-ink); }
+
+.ex-scrim { position: fixed; inset: 0; z-index: 40; background: rgb(0 0 0 / 0.32); }
+.ex-dialog { width: min(32rem, calc(100vw - 32px)); max-height: calc(100vh - 64px); padding: 0; overflow: auto; border: 0; border-radius: var(--radius-lg); background: var(--color-card); color: var(--color-body); box-shadow: var(--shadow-surface-5); }
+dialog.ex-dialog::backdrop { background: rgb(0 0 0 / 0.32); }
+.ex-dialog__head { display: grid; gap: 4px; padding: 20px 24px 0; }
+.ex-dialog__title { margin: 0; color: var(--color-strong); font-size: var(--text-base); font-weight: 600; line-height: 1.5rem; }
+.ex-dialog__desc { color: var(--color-subtle); font-size: var(--text-sm); }
+.ex-dialog__body { padding: 16px 24px; }
+.ex-dialog__foot { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; padding: 0 24px 20px; }
+
+.ex-sheet { position: fixed; inset: 0 0 0 auto; z-index: 41; display: flex; flex-direction: column; width: min(28rem, 100vw); border-left: 1px solid var(--color-border); background: var(--color-card); box-shadow: var(--shadow-surface-5); }
+.ex-sheet--left { inset: 0 auto 0 0; border-left: 0; border-right: 1px solid var(--color-border); }
+.ex-sheet__head { display: flex; align-items: center; gap: 8px; height: var(--app-bar-h, 3rem); padding: 0 16px; border-bottom: 1px solid var(--color-border); }
+.ex-sheet__title { margin: 0; color: var(--color-strong); font-size: var(--text-sm); font-weight: 600; }
+.ex-sheet__head > :last-child { margin-left: auto; }
+.ex-sheet__body { flex: 1; overflow-y: auto; padding: 16px; }
+.ex-sheet__foot { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--color-border); }
+
+/* A toast: a short line in ink at the bottom, then it goes (role="status"). */
+.ex-toasts { position: fixed; bottom: 16px; left: 50%; z-index: 60; display: grid; gap: 8px; transform: translateX(-50%); pointer-events: none; }
+.ex-toast { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 8px 14px; border-radius: var(--radius-md); background: var(--color-primary); color: var(--color-primary-foreground); font-size: var(--text-sm); box-shadow: var(--shadow-surface-4); pointer-events: auto; animation: ex-toast-in 200ms var(--ease-out-expo); }
+.ex-toast--danger { background: var(--color-returned); color: var(--color-on-returned); }
+@keyframes ex-toast-in { from { opacity: 0; transform: translateY(6px); } }
+@media (prefers-reduced-motion: reduce) { .ex-toast { animation: none; } }
+
+/* --- Reading: rendered markdown -------------------------------------------------------------------------- */
+
+.ex-prose { max-width: 70ch; color: var(--color-body); font-size: var(--text-base); line-height: 1.6; overflow-wrap: break-word; }
+.ex-prose > * + * { margin-top: 1em; }
+.ex-prose :where(h1, h2, h3, h4) { margin: 1.8em 0 0; color: var(--color-strong); font-weight: 600; letter-spacing: -0.01em; line-height: 1.3; }
+.ex-prose > :where(h1, h2, h3, h4):first-child { margin-top: 0; }
+.ex-prose h1 { font-size: var(--text-2xl); }
+.ex-prose h2 { font-size: var(--text-xl); }
+.ex-prose h3 { font-size: var(--text-lg); }
+.ex-prose h4 { font-size: var(--text-base); }
+.ex-prose :where(h1, h2, h3, h4) + * { margin-top: 0.6em; }
+.ex-prose a { color: var(--color-strong); font-weight: 500; text-decoration: underline; text-decoration-color: var(--color-border-strong); text-underline-offset: 0.25em; }
+.ex-prose a:hover { text-decoration-color: currentColor; }
+.ex-prose :where(ul, ol) { padding-left: 1.4em; }
+.ex-prose li + li { margin-top: 0.35em; }
+.ex-prose li::marker { color: var(--color-faint); }
+.ex-prose strong { color: var(--color-strong); font-weight: 600; }
+.ex-prose :not(pre) > code { padding: 0.1em 0.35em; border: 1px solid var(--color-border); border-radius: 5px; background: var(--color-muted); color: var(--color-strong); font-family: var(--font-mono); font-size: 0.85em; }
+.ex-prose pre { margin: 1.2em 0 0; padding: 14px 16px; overflow-x: auto; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-muted); color: var(--color-strong); font-family: var(--font-mono); font-size: var(--text-meta); line-height: 1.7; }
+.ex-prose blockquote { margin-left: 0; padding-left: 14px; border-left: 2px solid var(--color-border-strong); color: var(--color-subtle); }
+.ex-prose hr { margin: 2em 0; border: 0; border-top: 1px solid var(--color-border); }
+.ex-prose table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
+.ex-prose th, .ex-prose td { padding: 8px 10px; border-bottom: 1px solid var(--color-border); text-align: left; }
+.ex-prose th { color: var(--color-subtle); font-size: var(--text-2xs); font-weight: 500; }
+.ex-prose img { max-width: 100%; height: auto; border-radius: var(--radius-md); }
+.ex-prose--sm { font-size: var(--text-sm); line-height: 1.55; }
+
+/* --- The app shell ----------------------------------------------------------------------------------- */
+/* A 240px sidebar (brand row, grouped nav, foot), a 48px top bar that sticks, and the content on fixed
+   gutters (16 / 24 / 32px) up to 1440px. Below 768px the sidebar folds away behind the menu button
+   (kit.js toggles `data-nav-open` on the shell). */
+
+.ex-shell { --app-bar-h: 3rem; display: grid; grid-template-columns: 240px minmax(0, 1fr); min-height: 100vh; background: var(--color-background); font-size: var(--text-sm); line-height: 1.25rem; }
+.ex-sidebar { position: sticky; top: 0; display: flex; flex-direction: column; height: 100vh; border-right: 1px solid var(--color-border); background: var(--color-card); }
+.ex-sidebar__brand { display: flex; align-items: center; gap: 8px; height: var(--app-bar-h); padding: 0 16px; color: var(--color-strong); font-weight: 600; text-decoration: none; }
+/* A tool's mark, left of its name in the brand row: 16px, drawn on a 16-unit grid in currentColor, ink only. */
+.ex-mark { display: block; flex: none; width: 16px; height: 16px; color: var(--color-strong); }
+.ex-sidebar__body { flex: 1; overflow-y: auto; padding: 8px; }
+.ex-sidebar__foot { padding: 8px; border-top: 1px solid var(--color-border); }
+.ex-nav-label { margin: 16px 8px 4px; color: var(--color-faint); font-family: var(--font-mono); font-size: var(--text-2xs); letter-spacing: 0.07em; text-transform: uppercase; }
+.ex-nav-label:first-child { margin-top: 4px; }
+.ex-nav { display: grid; gap: 1px; margin: 0; padding: 0; list-style: none; }
+.ex-nav a, .ex-nav button { display: flex; align-items: center; gap: 8px; width: 100%; height: 32px; padding: 0 8px; border: 0; border-radius: var(--radius-sm); background: none; color: var(--color-body); font: inherit; text-align: left; text-decoration: none; cursor: pointer; }
+.ex-nav a:hover, .ex-nav button:hover { background: var(--color-muted); color: var(--color-strong); }
+.ex-nav [aria-current="page"] { background: var(--color-muted); color: var(--color-strong); font-weight: 500; }
+.ex-nav .ex-badge { margin-left: auto; }
+.ex-topbar { --control-h: var(--control-h-sm); position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 12px; height: var(--app-bar-h); padding: 0 16px; border-bottom: 1px solid var(--color-border); background: color-mix(in srgb, var(--color-background) 88%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+.ex-topbar__end { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.ex-crumbs { display: flex; align-items: center; gap: 6px; min-width: 0; margin: 0; padding: 0; list-style: none; color: var(--color-subtle); }
+.ex-crumbs li { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.ex-crumbs li + li::before { content: "/"; color: var(--color-faint); }
+.ex-crumbs [aria-current="page"] { color: var(--color-strong); font-weight: 500; }
+.ex-crumbs a { color: inherit; text-decoration: none; }
+.ex-crumbs a:hover { color: var(--color-strong); }
+.ex-main { width: 100%; max-width: 1440px; margin: 0 auto; padding: 24px 16px 64px; }
+.ex-main > * + * { margin-top: 32px; }
+.ex-main--narrow { max-width: 1040px; }
+.ex-menu-button { display: none; }
+@media (min-width: 640px) { .ex-main { padding-inline: 24px; } }
+@media (min-width: 1024px) { .ex-main { padding-inline: 32px; } }
+@media (max-width: 767px) {
+  .ex-shell { grid-template-columns: minmax(0, 1fr); }
+  .ex-sidebar { position: fixed; inset: 0 auto 0 0; z-index: 30; width: min(280px, 85vw); transform: translateX(-100%); transition: transform 200ms var(--ease-out-expo); box-shadow: var(--shadow-surface-5); }
+  .ex-shell[data-nav-open] .ex-sidebar { transform: none; }
+  .ex-shell[data-nav-open]::after { content: ""; position: fixed; inset: 0; z-index: 29; background: rgb(0 0 0 / 0.32); }
+  .ex-menu-button { display: inline-flex; }
+}
+/* A plain page without a sidebar: just the top bar and the content. */
+.ex-shell--bare { grid-template-columns: minmax(0, 1fr); }
+
+/* --- A small footer line: who made the tool ---------------------------------------------------------- */
+.ex-made { display: flex; flex-wrap: wrap; gap: 6px 16px; color: var(--color-faint); font-size: var(--text-2xs); }
+.ex-made a { color: var(--color-subtle); text-decoration: none; }
+.ex-made a:hover { color: var(--color-strong); }
+/* excellent-kit:end */
+
+/* ════════════════════════════════════════════════════════════════════════
+   selfdocs: the viewer's own parts, on the kit's tokens. No colour of its own:
+   ink and greys only (the kit's two marks, amber and red, come from its parts).
+   ════════════════════════════════════════════════════════════════════════ */
+
+/* The kit draws its nav labels at 11px; this viewer keeps the 12px floor. */
+.ex-nav-label { font-size: var(--text-2xs); }
+
+/* ── Shell ─────────────────────────────────────────────────────────────── */
+.sd-col { min-width: 0; }
+.sd-doc { max-width: 46rem; }
+.ex-nav button { gap: 8px; }
+.sd-nav-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ex-nav button[data-empty] .sd-nav-name { color: var(--color-subtle); }
+.sd-repo { display: grid; gap: 2px; padding: 4px 8px 12px; }
+.sd-repo__name { color: var(--color-strong); font-weight: 500; overflow-wrap: anywhere; }
+.sd-repo__meta { color: var(--color-subtle); font-size: var(--text-meta); }
+.sd-repo__path { overflow: hidden; color: var(--color-faint); font-family: var(--font-mono); font-size: var(--text-2xs); text-overflow: ellipsis; white-space: nowrap; }
+.ex-sidebar__foot .ex-nav-label { margin-top: 8px; }
+.ex-sidebar__foot .ex-made { padding: 8px 8px 4px; border-top: 1px solid var(--color-border); }
+.ex-crumbs { overflow: hidden; }
+.ex-crumbs li { min-width: 0; }
+.ex-crumbs li > span { overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 639px) { .ex-crumbs { display: none; } }
+@media (max-width: 379px) { .sd-wide { display: none; } }
+/* The kit's phone sidebar slides over the page; a scrim on the page's own colour sets it apart. */
+@media (max-width: 767px) {
+  .ex-shell[data-nav-open] .sd-col::after { content: ""; position: fixed; inset: 0; z-index: 20; background: color-mix(in srgb, var(--color-background) 70%, transparent); -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); }
+}
+
+/* ── Document head ─────────────────────────────────────────────────────── */
+.sd-dochead { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid var(--color-border); }
+.sd-regen { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.sd-regen .ex-hint { flex: 1 1 14rem; }
+.ex-cmd { max-width: 100%; }
+
+/* ── The drafted document ──────────────────────────────────────────────── */
+.sd-prose { color: var(--color-body); font-size: var(--text-ui); line-height: 1.65; }
+.sd-prose h2 { margin: 28px 0 12px; padding-top: 24px; border-top: 1px solid var(--color-border); font-size: var(--text-xl); line-height: 1.75rem; }
+.sd-prose h3 { margin: 28px 0 8px; font-size: var(--text-lg); line-height: 1.5rem; }
+.sd-prose h4 { margin: 20px 0 6px; font-size: var(--text-base); line-height: 1.5rem; }
+.sd-prose > .sd-block:first-child h2, .sd-prose > .sd-addnote:first-child + .sd-block h2 { margin-top: 0; padding-top: 0; border-top: 0; }
+.sd-prose p, .sd-prose ul, .sd-prose ol { margin: 0 0 12px; }
+.sd-prose ul, .sd-prose ol { padding-left: 20px; }
+.sd-prose li + li { margin-top: 4px; }
+.sd-prose li::marker { color: var(--color-faint); }
+.sd-prose strong { color: var(--color-strong); font-weight: 600; }
+.sd-prose a { color: var(--color-strong); font-weight: 500; text-decoration: underline; text-decoration-color: var(--color-border-strong); text-underline-offset: 0.3em; }
+.sd-prose a:hover { text-decoration-color: currentColor; }
+.sd-prose code { padding: 0.1em 0.35em; border: 1px solid var(--color-border); border-radius: 5px; background: var(--color-muted); color: var(--color-strong); font-size: 0.85em; overflow-wrap: anywhere; }
+.sd-prose h2 code, .sd-prose h3 code, .sd-prose h4 code { font-size: 0.9em; }
+.sd-prose pre { margin: 0 0 16px; padding: 14px 16px; overflow-x: auto; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-muted); color: var(--color-strong); font-size: var(--text-meta); line-height: 1.7; }
+.sd-prose pre code { padding: 0; border: 0; background: none; font-size: inherit; overflow-wrap: normal; }
+.sd-pre-lang { display: block; margin-bottom: 6px; color: var(--color-subtle); font-family: var(--font-mono); font-size: var(--text-2xs); letter-spacing: 0.07em; text-transform: uppercase; }
+.sd-prose blockquote { margin: 0 0 16px; padding: 12px 16px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-muted); color: var(--color-body); font-size: var(--text-sm); line-height: 1.6; }
+.sd-prose blockquote code { background: var(--color-card); }
+.sd-prose hr { margin: 24px 0; border: 0; border-top: 1px solid var(--color-border); }
+.sd-prose .ex-table-frame { margin: 0 0 16px; }
+.sd-prose .ex-table td { font-size: var(--text-sm); }
+
+/* ── Notes: yours, kept through every regeneration ─────────────────────── */
+.sd-addnote { margin: -6px 0 10px; }
+.sd-addnote .ex-btn { margin-left: -8px; color: var(--color-faint); font-weight: 500; }
+.sd-addnote .ex-btn:hover { color: var(--color-strong); }
+.sd-note { margin: 4px 0 20px; padding: 12px 16px 14px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-lg); background: var(--color-card); }
+.sd-note__head { display: flex; align-items: center; gap: 8px; min-height: 24px; margin-bottom: 8px; }
+.sd-note__actions { display: flex; gap: 4px; margin-left: auto; }
+.sd-note__body { color: var(--color-strong); font-size: var(--text-ui); line-height: 1.6; }
+.sd-note__body p { margin: 0; }
+.sd-note__body p + p { margin-top: 8px; }
+.sd-note--detached { border-style: dashed; }
+.sd-detached { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--color-border); }
+.sd-detached .ex-section-header { margin-bottom: 16px; }
+.sd-prose .sd-detached h2 { margin: 0; padding: 0; border: 0; font-size: var(--text-base); line-height: 1.5rem; }
+.sd-editor { display: grid; gap: 8px; margin: 4px 0 20px; }
+.sd-editor .ex-textarea { font-size: var(--text-ui); }
+
+/* ── Link a repo and generate ──────────────────────────────────────────── */
+.sd-setup { display: grid; gap: 24px; max-width: 42rem; }
+.sd-field-row { display: flex; gap: 8px; }
+.sd-field-row .ex-input { flex: 1; font-family: var(--font-mono); }
+.sd-types { display: grid; gap: 8px; min-width: 0; margin: 0; padding-block: 0; border: 0; }
+.sd-types legend { margin-bottom: 8px; padding: 0; }
+.sd-typegrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(13rem, 100%), 1fr)); gap: 4px 16px; }
+.sd-typegrid .ex-check { align-items: center; min-height: 32px; color: var(--color-body); cursor: pointer; }
+.sd-typegrid .ex-check input { margin: 0; }
+.sd-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; }
+.sd-actions .ex-hint { flex: 1 1 16rem; }
+.ex-error { display: flex; align-items: center; gap: 8px; }
+@media (max-width: 519px) { .sd-field-row { flex-direction: column; } }
+
+/* ── A document not generated yet ──────────────────────────────────────── */
+.sd-empty { max-width: 42rem; padding: 40px 24px; }
+.sd-empty .ex-empty__actions { align-items: center; }
+
+/* ── Toast (it floats, so it gets the kit's shadow) ────────────────────── */
+.sd-toast { position: fixed; left: 50%; bottom: 24px; z-index: 50; display: flex; align-items: center; gap: 10px; max-width: calc(100vw - 32px); padding: 10px 16px; color: var(--color-strong); font-size: var(--text-sm); opacity: 0; pointer-events: none; transform: translate(-50%, 8px); transition: opacity var(--dur-fast), transform var(--dur-fast) var(--ease-out-expo); }
+.sd-toast.is-shown { opacity: 1; transform: translate(-50%, 0); }
+.sd-toast--error { color: var(--color-returned-ink); }
+@media (prefers-reduced-motion: reduce) { .sd-toast { transition: none; } }
+</style>
+</head>
+<body class="ex-page" data-density="compact">
+<a class="ex-skip" href="#main">Skip to the document</a>
+<div class="ex-shell" id="shell">
+  <aside class="ex-sidebar" id="sidebar" aria-label="Documents">
+    <span class="ex-sidebar__brand"><svg class="ex-mark" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M2 1h12v14H2z" stroke="currentColor" stroke-width="2" fill="none"/><rect x="5" y="4" width="6" height="2"/><rect x="5" y="7" width="6" height="2"/><rect x="5" y="10" width="2" height="3"/></svg>selfdocs</span>
+    <nav class="ex-sidebar__body" aria-label="Documents">
+      <p class="ex-nav-label">Documents</p>
+      <ul class="ex-nav" id="nav"></ul>
+    </nav>
+    <div class="ex-sidebar__foot">
+      <div id="repo"></div>
+      <p class="ex-made"><span>MIT</span><a href="https://github.com/excellent-so/selfdocs" target="_blank" rel="noopener">Code</a></p>
+    </div>
+  </aside>
+
+  <div class="sd-col">
+    <header class="ex-topbar">
+      <button class="ex-btn ex-btn--ghost ex-btn--sm ex-btn--icon ex-menu-button" type="button" data-ex-nav-toggle aria-expanded="false" aria-controls="sidebar" aria-label="Documents">☰</button>
+      <ol class="ex-crumbs" id="crumbs"></ol>
+      <div class="ex-topbar__end">
+        <button class="ex-btn ex-btn--outline ex-btn--sm" type="button" id="linkRepoBtn" title="Point selfdocs at a different repository" aria-label="Link repo"><span>Link<span class="sd-wide"> repo</span></span></button>
+        <button class="ex-btn ex-btn--sm" type="button" id="generateBtn" title="Generate every document for the linked repository">Generate</button>
+        <button class="ex-btn ex-btn--outline ex-btn--sm" type="button" data-ex-theme-toggle aria-pressed="false">Dark</button>
+      </div>
+    </header>
+    <main class="ex-main" id="main"><div class="sd-doc" id="doc"></div></main>
+  </div>
+</div>
+<div class="sd-toast ex-float" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+"use strict";
+const $ = (sel, el = document) => el.querySelector(sel);
+const root = document.documentElement;
+const shell = $("#shell");
+const SETUP = "__setup__"; // the onboarding pseudo-view (link a repo, generate)
+const DEFAULT_TYPES = ["architecture", "schema", "api", "data-flow", "integrations"];
+const state = { data: null, env: null, active: "architecture", editing: null, building: false, linkPath: null, selectedTypes: null };
+
+// ── theme: the kit's toggle. Light unless the reader picks dark; the choice is kept as "ex-theme". ──
+function syncThemeToggle() {
+  const dark = root.classList.contains("theme-dark");
+  document.querySelectorAll("[data-ex-theme-toggle]").forEach((b) => b.setAttribute("aria-pressed", String(dark)));
+}
+function setTheme(t) {
+  root.classList.toggle("theme-dark", t === "dark");
+  try { localStorage.setItem("ex-theme", t); } catch (e) { /* private window: the toggle still works */ }
+  syncThemeToggle();
+}
+syncThemeToggle();
+
+// ── the sidebar on a phone (the kit's shell folds it away below 768px) ──
+function setNav(open) {
+  shell.toggleAttribute("data-nav-open", open);
+  $("[data-ex-nav-toggle]").setAttribute("aria-expanded", String(open));
+}
+
+document.addEventListener("click", (e) => {
+  const t = e.target instanceof Element ? e.target : null;
+  if (!t) return;
+  if (t.closest("[data-ex-theme-toggle]")) { setTheme(root.classList.contains("theme-dark") ? "light" : "dark"); return; }
+  if (t.closest("[data-ex-nav-toggle]")) { setNav(!shell.hasAttribute("data-nav-open")); return; }
+  if (shell.hasAttribute("data-nav-open") && !t.closest(".ex-sidebar")) setNav(false);
+  const copy = t.closest("[data-copy]");
+  if (copy) { copyCmd(copy); return; }
+  const act = t.closest("[data-action]");
+  if (act && !act.disabled) onAction(act);
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && shell.hasAttribute("data-nav-open")) setNav(false);
+});
+
+// Header repo controls: open the link/generate panel, or generate everything in place.
+$("#linkRepoBtn").onclick = () => {
+  state.active = SETUP;
+  state.linkPath = state.env?.target?.display ?? state.env?.target?.path ?? null;
+  renderAll();
+};
+$("#generateBtn").onclick = () => doGenerate(null);
+
+function toast(msg, kind) {
+  const el = $("#toast");
+  el.classList.toggle("sd-toast--error", kind === "error");
+  el.innerHTML = (kind === "error" ? '<span class="ex-glyph ex-glyph--cross" aria-hidden="true"></span>' : "") + `<span>${esc(msg)}</span>`;
+  el.classList.add("is-shown");
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove("is-shown"), kind === "error" ? 4000 : 1800);
+}
+
+// The kit's command pill: copy, show "Copied" for 1.6 s, then go back.
+function copyText(text) {
+  if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text);
+  const t = document.createElement("textarea");
+  t.value = text; t.setAttribute("readonly", ""); t.style.position = "fixed"; t.style.opacity = "0";
+  document.body.appendChild(t); t.select();
+  try { document.execCommand("copy"); } finally { t.remove(); }
+  return Promise.resolve();
+}
+function copyCmd(btn) {
+  copyText(btn.dataset.copy).then(() => {
+    btn.classList.add("is-copied");
+    btn.textContent = "Copied";
+    clearTimeout(btn._t);
+    btn._t = setTimeout(() => { btn.classList.remove("is-copied"); btn.textContent = "Copy"; }, 1600);
+  }, () => toast("Couldn't copy. Select the command and copy it by hand.", "error"));
+}
+function cmdPill(cmd) {
+  return `<span class="ex-cmd"><code>${esc(cmd)}</code><button type="button" data-copy="${esc(cmd)}">Copy</button></span>`;
+}
+
+// ── escaping + inline markdown ──────────────────────────────────────────────
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+function inline(s) {
+  // Operates on already-escaped text (backticks/asterisks aren't HTML-special).
+  let out = esc(s);
+  out = out.replace(/`([^`]+)`/g, (_, c) => `<code>${c}</code>`);
+  out = out.replace(/\*\*([^*]+)\*\*/g, (_, c) => `<strong>${c}</strong>`);
+  out = out.replace(/(^|[^*])\*([^*\n]+)\*/g, (_, p, c) => `${p}<em>${c}</em>`);
+  out = out.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, txt, url) =>
+    /^(https?:|\/|#)/.test(url) ? `<a href="${url}" target="_blank" rel="noopener">${txt}</a>` : txt);
+  return out;
+}
+
+// ── block renderer (over pre-parsed block objects) ──────────────────────────
+function renderAuto(block) {
+  const c = block.content || "";
+  switch (block.block_type) {
+    case "heading": {
+      const m = /^(#{1,6})\s+(.*)$/.exec(c.trim());
+      const lvl = m ? Math.min(m[1].length, 4) : 2;
+      const text = m ? m[2] : c;
+      return `<h${lvl}>${inline(text)}</h${lvl}>`;
+    }
+    case "code": {
+      const lines = c.split("\n");
+      let lang = "";
+      if (/^```/.test(lines[0] || "")) { lang = (lines[0].match(/^```(\w+)/) || [])[1] || ""; lines.shift(); }
+      if (/^```\s*$/.test(lines[lines.length - 1] || "")) lines.pop();
+      const body = esc(lines.join("\n"));
+      return `<pre>${lang ? `<span class="sd-pre-lang">${esc(lang)}</span>` : ""}<code>${body}</code></pre>`;
+    }
+    case "list": {
+      const items = c.split("\n").filter((l) => l.trim());
+      const ordered = /^\s*\d+\.\s/.test(items[0] || "");
+      const lis = items.map((l) => `<li>${inline(l.replace(/^\s*(?:[-*+]|\d+\.)\s+/, ""))}</li>`).join("");
+      return ordered ? `<ol>${lis}</ol>` : `<ul>${lis}</ul>`;
+    }
+    case "callout":
+      return `<blockquote>${inline(c.replace(/^>\s?/gm, ""))}</blockquote>`;
+    case "table":
+      return renderTable(c);
+    case "rule":
+      return "<hr/>";
+    default:
+      return `<p>${inline(c)}</p>`;
+  }
+}
+function renderTable(c) {
+  const rows = c.split("\n").filter((l) => l.includes("|"));
+  if (rows.length < 2) return `<p>${inline(c)}</p>`;
+  const cells = (r) => r.replace(/^\s*\|/, "").replace(/\|\s*$/, "").split("|").map((x) => x.trim());
+  const head = cells(rows[0]);
+  const bodyRows = rows.slice(2).map(cells);
+  const th = head.map((h) => `<th>${inline(h)}</th>`).join("");
+  const trs = bodyRows.map((r) => `<tr>${r.map((d) => `<td>${inline(d)}</td>`).join("")}</tr>`).join("");
+  return `<div class="ex-table-frame"><div class="ex-table-scroll"><table class="ex-table"><thead><tr>${th}</tr></thead><tbody>${trs}</tbody></table></div></div>`;
+}
+function renderUserBody(c) {
+  return String(c).split(/\n{2,}/).map((p) => `<p>${inline(p).replace(/\n/g, "<br/>")}</p>`).join("");
+}
+
+// ── data ────────────────────────────────────────────────────────────────────
+async function fetchAll() {
+  const [docsRes, envRes] = await Promise.all([fetch("/api/docs"), fetch("/api/env")]);
+  state.data = await docsRes.json();
+  state.env = await envRes.json().catch(() => null);
+}
+function renderAll() { syncHeader(); renderNav(); renderDoc(); }
+async function load() { await fetchAll(); renderAll(); }
+
+// A doc "has content" once it holds any auto or user block.
+function hasContent(doc) { return !!(doc && (doc.blocks || []).some((b) => b.origin === "auto" || b.origin === "user")); }
+function anyDocGenerated() { return !!(state.data && state.data.docs && Object.values(state.data.docs).some(hasContent)); }
+function firstGeneratedType() { const d = ((state.data && state.data.docTypes) || []).find((x) => x.generated); return d ? d.doc_type : null; }
+function titleForType(tp) { const d = ((state.data && state.data.docTypes) || []).find((x) => x.doc_type === tp); return d ? d.title : tp; }
+function onSetup() { return state.active === SETUP || !anyDocGenerated(); }
+function plural(n, word) { return `${n} ${word}${n === 1 ? "" : "s"}`; }
+function currentSelectedTypes() {
+  if (!state.selectedTypes) {
+    const list = (state.env && state.env.docTypes && state.env.docTypes.length) ? state.env.docTypes : DEFAULT_TYPES;
+    state.selectedTypes = new Set(list);
+  }
+  return state.selectedTypes;
+}
+function projectInfo() {
+  const target = state.env && state.env.target;
+  if (target && target.path) {
+    return { name: target.path.split("/").pop() || target.path, path: target.display || target.path, type: target.projectType !== "unknown" ? target.projectType : null, framework: target.framework || null };
+  }
+  const p = state.data && state.data.project;
+  return p ? { name: p.name, path: state.data.root || "", type: p.type || null, framework: p.framework || null } : null;
+}
+
+// ── top bar + sidebar foot ──────────────────────────────────────────────────
+function syncHeader() {
+  const p = projectInfo();
+  const here = onSetup() ? "Document a repository" : titleForType(state.active);
+  $("#crumbs").innerHTML = (p ? `<li><span>${esc(p.name)}</span></li>` : "") + `<li aria-current="page"><span>${esc(here)}</span></li>`;
+  document.title = [here, p && p.name, "selfdocs"].filter(Boolean).join(" · ");
+
+  $("#repo").innerHTML = p
+    ? `<p class="ex-nav-label">Repository</p><div class="sd-repo"><span class="sd-repo__name">${esc(p.name)}</span>` +
+      `<span class="sd-repo__meta">${esc([p.type, p.framework].filter(Boolean).join(" · ") || "Type not detected")}</span>` +
+      (p.path ? `<span class="sd-repo__path" title="${esc(p.path)}">${esc(p.path)}</span>` : "") + `</div>`
+    : "";
+
+  $("#linkRepoBtn").disabled = state.building;
+  const genBtn = $("#generateBtn");
+  genBtn.disabled = state.building;
+  const genLabel = state.building ? "Generating…" : (anyDocGenerated() ? "Regenerate all" : "Generate");
+  genBtn.setAttribute("aria-label", genLabel);
+  genBtn.innerHTML = genLabel === "Regenerate all" ? '<span>Regenerate<span class="sd-wide"> all</span></span>' : esc(genLabel);
+  $("#main").setAttribute("aria-busy", String(state.building));
+}
+
+function renderNav() {
+  const nav = $("#nav");
+  nav.innerHTML = "";
+  for (const d of state.data.docTypes) {
+    const li = document.createElement("li");
+    const btn = document.createElement("button");
+    btn.type = "button";
+    if (d.doc_type === state.active && !onSetup()) btn.setAttribute("aria-current", "page");
+    if (!d.generated) btn.setAttribute("data-empty", "");
+    btn.title = d.generated
+      ? `${plural(d.autoCount, "drafted block")}, ${plural(d.userCount, "note")}${d.detachedCount ? `, ${d.detachedCount} detached` : ""}`
+      : "Not generated yet";
+    btn.innerHTML = `<span class="sd-nav-name">${esc(d.title)}</span>` +
+      (!d.generated ? `<span class="ex-badge ex-badge--unchecked">Empty</span>`
+        : d.userCount ? `<span class="ex-badge ex-badge--count">${esc(plural(d.userCount, "note"))}</span>` : "");
+    btn.onclick = () => {
+      state.active = d.doc_type;
+      state.editing = null;
+      setNav(false);
+      renderAll();
+      window.scrollTo(0, 0);
+    };
+    li.appendChild(btn);
+    nav.appendChild(li);
+  }
+}
+
+function renderDoc() {
+  const el = $("#doc");
+  // Onboarding: nothing generated for this target yet, or the panel was opened.
+  if (onSetup()) {
+    el.innerHTML = renderSetup();
+    wireSetup();
+    return;
+  }
+  const doc = state.data.docs[state.active];
+  // A generated repo, but THIS doc type hasn't been generated: offer to generate it.
+  if (!hasContent(doc)) {
+    el.innerHTML = renderDocEmpty(doc);
+    return;
+  }
+
+  const when = doc.generated_at ? new Date(doc.generated_at).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : null;
+  const by = doc.model === "mock" ? "the offline generator" : doc.model;
+  const notes = (doc.blocks || []).filter((b) => b.origin === "user").length;
+  const meta = [when ? `Drafted ${when}${by ? ` with ${by}` : ""}` : by ? `Drafted with ${by}` : "", plural(notes, "note")].filter(Boolean).join(" · ");
+  const regenLabel = state.building ? "Generating…" : "Regenerate";
+
+  let html = `<header class="sd-dochead">
+    <div class="ex-page-header">
+      <div>
+        <h1 class="ex-page-header__title">${esc(doc.title)}</h1>
+        <p class="ex-page-header__desc">${esc(meta)}</p>
+      </div>
+      <div class="ex-page-header__actions">
+        <button type="button" class="ex-btn ex-btn--outline ex-btn--sm" data-action="regen-this"${state.building ? " disabled" : ""}>${regenLabel}</button>
+      </div>
+    </div>
+    <div class="sd-regen">
+      ${cmdPill(`selfdocs build --type=${state.active}`)}
+      <p class="ex-hint">Regenerate here or from the terminal. Your notes stay where you put them.</p>
+    </div>
+  </header><div class="sd-prose">`;
+
+  // Threaded body: an ordered walk. The doc's leading H1 is the page title above.
+  // A note can follow any drafted block except a heading (it reads as part of the section).
+  const ordered = (doc.blocks || []).filter((b) => b.detached !== 1).sort((a, b) => a.position - b.position);
+  html += addNoteRow(null); // top-of-doc note
+  for (const b of ordered) {
+    if (b.origin === "user") { html += renderNote(b); continue; }
+    if (b.block_type === "heading" && /^h1:/.test(b.anchor || "")) continue;
+    html += `<div class="sd-block">${renderAuto(b)}</div>`;
+    if (b.anchor && b.block_type !== "heading") html += addNoteRow(b.anchor);
+  }
+
+  const detached = (doc.blocks || []).filter((b) => b.detached === 1);
+  if (detached.length) {
+    html += `<section class="sd-detached" aria-labelledby="h-detached">
+      <div class="ex-section-header"><div>
+        <h2 class="ex-section-header__title" id="h-detached">${detached.length === 1 ? "A detached note" : `${detached.length} detached notes`}</h2>
+        <p class="ex-section-header__desc">The section ${detached.length === 1 ? "this note was" : "these notes were"} pinned to is gone from the latest draft. ${detached.length === 1 ? "It goes" : "Each one goes"} back in place if the section returns.</p>
+      </div></div>`;
+    for (const b of detached) html += renderNote(b);
+    html += "</section>";
+  }
+  html += "</div>";
+  el.innerHTML = html;
+}
+
+// ── onboarding: link a repo, then generate its docs ─────────────────────────
+function renderSetup() {
+  const env = state.env || {};
+  const target = env.target || {};
+  const claudeOk = !!(env.claude && env.claude.available);
+  const pathVal = state.linkPath != null ? state.linkPath : (target.display || target.path || env.root || "");
+  const types = (env.docTypes && env.docTypes.length) ? env.docTypes : DEFAULT_TYPES;
+  const selected = currentSelectedTypes();
+
+  const detected = target.exists
+    ? `<p class="ex-hint">Detected <strong>${esc(target.projectType || "unknown")}</strong>` +
+        (target.framework ? ` · ${esc(target.framework)}` : "") +
+        (target.files != null ? ` · ${esc(plural(target.files, "file"))} scanned` : " · not scanned yet") + `</p>`
+    : `<p class="ex-error"><span class="ex-glyph ex-glyph--cross" aria-hidden="true"></span>Not a folder. Enter the path to an existing folder and link it.</p>`;
+
+  const engine = claudeOk
+    ? `<div class="ex-alert"><span class="ex-glyph" aria-hidden="true"></span><p class="ex-alert__title">claude CLI found</p>
+        <p class="ex-alert__desc">The model drafts the docs from your code. The files it reads go to it through your claude CLI, with .env values redacted first.</p></div>`
+    : `<div class="ex-alert"><span class="ex-glyph ex-glyph--open" aria-hidden="true"></span><p class="ex-alert__title">No claude CLI on your PATH</p>
+        <p class="ex-alert__desc">Docs draft offline with the built-in generator: instant, no network, a scaffold from the file scan. Install the claude CLI and sign in for docs written from the code.</p></div>`;
+
+  const opts = types.map((tp) =>
+    `<label class="ex-check"><input type="checkbox" value="${esc(tp)}"${selected.has(tp) ? " checked" : ""}/><span>${esc(titleForType(tp))}</span></label>`,
+  ).join("");
+
+  const canGen = target.exists && !state.building;
+  return `<div class="sd-setup">
+    <div class="ex-page-header"><div>
+      <h1 class="ex-page-header__title">Document a repository</h1>
+      <p class="ex-page-header__desc">Point selfdocs at a repo and generate its docs. Then read them here and add your own notes.</p>
+    </div></div>
+    <div class="ex-card">
+      <div class="ex-field">
+        <label class="ex-label" for="linkInput">Repository path</label>
+        <div class="sd-field-row">
+          <input class="ex-input" id="linkInput" type="text" spellcheck="false" autocomplete="off" value="${esc(pathVal)}" placeholder="/path/to/repo or ~/code/repo" />
+          <button type="button" class="ex-btn ex-btn--outline" id="linkBtn">Link repository</button>
+        </div>
+        ${detected}
+      </div>
+      <fieldset class="sd-types">
+        <legend class="ex-label">Documents to generate</legend>
+        <div class="sd-typegrid">${opts}</div>
+      </fieldset>
+      <div>${engine}</div>
+      <div class="sd-actions">
+        <button type="button" class="ex-btn" id="setupGenerate"${canGen ? "" : " disabled"}>${state.building ? "Generating…" : "Generate docs"}</button>
+        <p class="ex-hint">Writes to <code class="ex-code">.selfdocs/</code> in that repo. Regenerating never overwrites your notes.</p>
+      </div>
+    </div>
+  </div>`;
+}
+function wireSetup() {
+  const input = $("#linkInput");
+  const linkBtn = $("#linkBtn");
+  if (linkBtn) linkBtn.onclick = () => doLink(input ? input.value : "");
+  if (input) input.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); doLink(input.value); } };
+  document.querySelectorAll(".sd-typegrid input[type=checkbox]").forEach((cb) => {
+    cb.onchange = () => { const set = currentSelectedTypes(); cb.checked ? set.add(cb.value) : set.delete(cb.value); };
+  });
+  const gen = $("#setupGenerate");
+  if (gen) gen.onclick = () => {
+    const types = [...currentSelectedTypes()];
+    if (!types.length) { toast("Pick at least one document"); return; }
+    doGenerate(types);
+  };
+}
+
+function renderDocEmpty(doc) {
+  return `<div class="ex-empty sd-empty">
+    <p class="ex-empty__title">${esc(doc.title)} isn't generated yet</p>
+    <p class="ex-empty__text">Generate it here, or run the command in the repo and reload this page.</p>
+    <div class="ex-empty__actions">
+      <button type="button" class="ex-btn" data-action="gen-this"${state.building ? " disabled" : ""}>${state.building ? "Generating…" : "Generate " + esc(doc.title)}</button>
+      ${cmdPill(`selfdocs build --type=${state.active}`)}
+    </div>
+  </div>`;
+}
+
+// ── link + generate actions ─────────────────────────────────────────────────
+async function doLink(pathValue) {
+  const p = String(pathValue || "").trim();
+  if (!p) { toast("Enter a repository path"); return; }
+  let j;
+  try {
+    const r = await fetch("/api/target", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ path: p }) });
+    j = await r.json().catch(() => ({ ok: false, error: "bad response" }));
+    if (!j.ok) { toast("Couldn't link: " + (j.error || r.status), "error"); return; }
+  } catch (e) { toast("Couldn't link: " + e.message, "error"); return; }
+  state.linkPath = j.target.display || j.target.path;
+  state.selectedTypes = new Set(j.docTypes && j.docTypes.length ? j.docTypes : DEFAULT_TYPES);
+  await fetchAll();
+  // A freshly linked repo that already has docs: jump into them; else stay on setup.
+  state.active = firstGeneratedType() || SETUP;
+  renderAll();
+  toast("Linked " + (j.target.path.split("/").pop() || j.target.path));
+}
+
+async function doGenerate(types) {
+  if (state.building) return;
+  const target = state.env && state.env.target;
+  if (target && !target.exists) { toast("Link a repository first"); return; }
+  state.building = true;
+  syncHeader();
+  renderDoc(); // reflect the "Generating…" state in the active panel
+  const body = {};
+  if (Array.isArray(types) && types.length) body.types = types;
+  try {
+    const r = await fetch("/api/build", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+    const j = await r.json().catch(() => ({ ok: false, error: "bad response" }));
+    if (!j.ok) throw new Error(j.error || ("HTTP " + r.status));
+    state.building = false;
+    await fetchAll();
+    const fg = firstGeneratedType();
+    if (fg && (state.active === SETUP || !hasContent(state.data.docs[state.active]))) state.active = fg;
+    renderAll();
+    const n = (j.generated || []).length;
+    toast(`Generated ${plural(n, "doc")} ${j.mode === "mock" ? "offline" : "with " + j.mode}`);
+  } catch (e) {
+    state.building = false;
+    renderAll();
+    toast("Generate failed: " + e.message, "error");
+  }
+}
+
+// ── notes ───────────────────────────────────────────────────────────────────
+function renderNote(b) {
+  const id = esc(b.id);
+  if (state.editing === b.id) return editorHtml(b.content, `data-action="save-edit" data-id="${id}"`);
+  const detached = b.detached === 1;
+  return `<div class="sd-note${detached ? " sd-note--detached" : ""}">
+    <div class="sd-note__head">
+      <span class="ex-badge ${detached ? "ex-badge--warning" : "ex-badge--outline"}">${detached ? "Detached note" : "Your note"}</span>
+      <span class="sd-note__actions">
+        <button type="button" class="ex-btn ex-btn--ghost ex-btn--xs" data-action="edit" data-id="${id}">Edit</button>
+        <button type="button" class="ex-btn ex-btn--ghost ex-btn--xs" data-action="delete" data-id="${id}">Delete</button>
+      </span>
+    </div>
+    <div class="sd-note__body">${renderUserBody(b.content)}</div>
+  </div>`;
+}
+
+function anchorAttr(anchor) { return anchor === null ? "" : ` data-anchor="${esc(anchor)}"`; }
+function addNoteRow(anchor) {
+  const key = anchor === null ? "__top__" : anchor;
+  if (state.editing === "add:" + key) return editorHtml("", `data-action="save-add"${anchorAttr(anchor)}`);
+  return `<div class="sd-addnote"><button type="button" class="ex-btn ex-btn--ghost ex-btn--xs" data-action="add"${anchorAttr(anchor)}>+ Add note</button></div>`;
+}
+function editorHtml(value, saveAttrs) {
+  return `<div class="sd-editor">
+    <label class="ex-sr-only" for="editorInput">Your note</label>
+    <textarea class="ex-textarea" id="editorInput" placeholder="Write a note. It stays here when the docs regenerate.">${esc(value)}</textarea>
+    <div class="ex-toolbar">
+      <button type="button" class="ex-btn ex-btn--sm" id="editorSave" ${saveAttrs}>Save note</button>
+      <button type="button" class="ex-btn ex-btn--outline ex-btn--sm" data-action="cancel">Cancel</button>
+    </div>
+  </div>`;
+}
+
+function onAction(el) {
+  const anchor = el.hasAttribute("data-anchor") ? el.getAttribute("data-anchor") : null;
+  const id = el.getAttribute("data-id");
+  switch (el.dataset.action) {
+    case "add": state.editing = "add:" + (anchor === null ? "__top__" : anchor); renderDoc(); focusEditor(); break;
+    case "edit": state.editing = id; renderDoc(); focusEditor(); break;
+    case "cancel": state.editing = null; renderDoc(); break;
+    case "save-add": saveAdd(anchor); break;
+    case "save-edit": saveEdit(id); break;
+    case "delete": delNote(id); break;
+    case "regen-this": case "gen-this": doGenerate([state.active]); break;
+  }
+}
+function focusEditor() {
+  const t = $("#editorInput");
+  if (!t) return;
+  t.focus();
+  t.setSelectionRange(t.value.length, t.value.length);
+  // Cmd/Ctrl+Enter saves, Escape cancels.
+  t.onkeydown = (e) => {
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); $("#editorSave").click(); }
+    else if (e.key === "Escape") { e.preventDefault(); state.editing = null; renderDoc(); }
+  };
+}
+
+async function api(method, body) {
+  const r = await fetch("/api/blocks", { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+  const j = await r.json().catch(() => ({ ok: false, error: "bad response" }));
+  if (!j.ok) { toast("Couldn't save: " + (j.error || r.status), "error"); throw new Error(j.error || r.status); }
+  return j;
+}
+async function saveAdd(anchor) {
+  const content = $("#editorInput").value.trim();
+  if (!content) { toast("The note is empty"); return; }
+  await api("POST", { docType: state.active, after_anchor: anchor, content });
+  state.editing = null;
+  await load();
+  toast("Note saved");
+}
+async function saveEdit(id) {
+  const content = $("#editorInput").value.trim();
+  if (!content) { toast("The note is empty"); return; }
+  await api("PATCH", { docType: state.active, id, content });
+  state.editing = null;
+  await load();
+  toast("Note updated");
+}
+async function delNote(id) {
+  if (!confirm("Delete this note? It can't be undone.")) return;
+  await api("DELETE", { docType: state.active, id });
+  await load();
+  toast("Note deleted");
+}
+
+load().catch((e) => {
+  $("#doc").innerHTML = `<div class="ex-alert ex-alert--danger" role="alert"><span class="ex-glyph ex-glyph--cross" aria-hidden="true"></span>
+    <p class="ex-alert__title">Couldn't load the docs</p><p class="ex-alert__desc">${esc(e.message)}. Is selfdocs serve still running?</p></div>`;
+});
+</script>
+</body>
+</html>

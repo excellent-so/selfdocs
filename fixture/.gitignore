@@ -1,0 +1,3 @@
+# Build output and local secrets — the scanner must skip these.
+dist/
+*.secret

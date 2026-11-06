@@ -1,0 +1,50 @@
+{
+  "name": "@excellent-so/selfdocs",
+  "version": "0.1.0",
+  "description": "The codebase that documents itself. One command scans your repo, drafts its architecture docs with the local `claude` CLI, and serves a viewer where your human annotations survive every regeneration.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Excellent",
+  "homepage": "https://github.com/excellent-so/selfdocs",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/excellent-so/selfdocs.git"
+  },
+  "keywords": [
+    "documentation",
+    "architecture",
+    "codebase",
+    "docs-generator",
+    "claude",
+    "llm",
+    "self-documenting",
+    "annotations",
+    "dev-tools",
+    "static-analysis"
+  ],
+  "bin": {
+    "selfdocs": "bin/selfdocs.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "viewer/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "selfdocs": "node bin/selfdocs.mjs",
+    "test": "node test/run.mjs",
+    "test:standalone": "node scripts/test-standalone.mjs"
+  },
+  "//dependencies": "Zero runtime dependencies by design. The scan, the gitignore matcher, the markdown block parser/validator, and the viewer server are all hand-rolled on Node built-ins. Doc generation shells out to the `claude` CLI on your PATH; with no CLI (or `--mock`) a deterministic offline generator runs — so the whole tool works with no key and no network.",
+  "publishConfig": {
+    "access": "public"
+  },
+  "bugs": {
+    "url": "https://github.com/excellent-so/selfdocs/issues"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "widgetco-api",
+  "version": "1.2.0",
+  "description": "A tiny fixture app selfdocs' tests scan and document.",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "node src/index.js",
+    "test": "jest"
+  },
+  "dependencies": {
+    "express": "^4.19.0"
+  },
+  "devDependencies": {
+    "jest": "^29.0.0"
+  }
+}
