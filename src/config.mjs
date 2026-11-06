@@ -9,6 +9,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL, fileURLToPath } from "node:url";
+import { SelfdocsError } from "./lib.mjs";
 
 /** The five fixed doc types, in display order. */
 export const DOC_TYPES = ["architecture", "schema", "api", "data-flow", "integrations"];
@@ -63,9 +64,23 @@ export function findConfig(startDir = process.cwd()) {
 }
 
 async function loadRaw(file) {
-  if (file.endsWith(".json")) return JSON.parse(fs.readFileSync(file, "utf8"));
-  const mod = await import(pathToFileURL(file).href);
-  return mod.default ?? mod;
+  let raw;
+  try {
+    if (file.endsWith(".json")) raw = JSON.parse(fs.readFileSync(file, "utf8"));
+    else {
+      const mod = await import(pathToFileURL(file).href);
+      raw = mod.default ?? mod;
+    }
+  } catch (e) {
+    throw new SelfdocsError(
+      `couldn't read the config file ${file}: ${String(e?.message ?? e).split("\n")[0]}`,
+      "Fix the file or delete it: every key is optional, and selfdocs works with no config at all.",
+    );
+  }
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    throw new SelfdocsError(`the config file ${file} doesn't export an object.`, "Export one, like `export default { docTypes: [\"architecture\"] }`, or delete the file.");
+  }
+  return raw;
 }
 
 /**

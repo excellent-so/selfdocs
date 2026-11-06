@@ -33,6 +33,18 @@ export function newId(prefix = "b") {
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /**
+ * An error a person can act on: `message` says what went wrong in one sentence, `hint` says what to do. The
+ * CLI prints both with no stack trace, and the viewer shows both in its toast.
+ */
+export class SelfdocsError extends Error {
+  constructor(message, hint = "") {
+    super(message);
+    this.name = "SelfdocsError";
+    this.hint = hint;
+  }
+}
+
+/**
  * A path for people to read: anything under the home directory as `~/…` (the home directory itself as `~`).
  * Compares against the home directory as given and as resolved, since macOS reports a temp dir as /var/…
  * while the working directory resolves to /private/var/…. Paths outside home come back unchanged.

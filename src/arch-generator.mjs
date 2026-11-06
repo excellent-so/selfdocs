@@ -8,6 +8,10 @@ import { gatherContext, formatContextForLLM } from "./context.mjs";
 import { callLLM, ContextTooLargeError } from "./llm.mjs";
 import { validateArchDoc, autoRepair } from "./doc-validator.mjs";
 import { mockGenerate } from "./mock.mjs";
+import { SelfdocsError } from "./lib.mjs";
+
+// The retry budget when the model says the context is too large: half the default (context.mjs).
+const REDUCED_MAX_TOKENS = 40_000;
 
 export function computeManifestHash(manifest) {
   const data = manifest.files
@@ -172,6 +176,26 @@ A GFM table of every env var found (\`Variable\`, \`Required\`, \`Default\`, \`U
 ${COMMON_RULES}`,
 };
 
+/**
+ * The prompt for one doc: the context, then how to stay inside it. The reminder comes last, where it's read
+ * last, because a model given little code fills the gaps from what projects like this usually contain.
+ */
+function userMessageFor(ctx, docType) {
+  const parts = ["Analyze this codebase and generate the documentation.", "", formatContextForLLM(ctx), "---", ""];
+  if (ctx.fallback) {
+    parts.push(
+      `No file matched what a ${docType} doc usually reads, so these are the project's entry points, routes and models instead. Describe the ${docType} from them, and say plainly what they don't show.`,
+      "",
+    );
+  } else if (ctx.files.length === 0) {
+    parts.push("No file contents are included: only the list of files and directories above. Say what the list shows, and nothing more.", "");
+  }
+  parts.push(
+    "The files above are all the code you have. Name only files, directories, functions, routes, tables, settings and dependencies that appear above. Where they don't show something, write \"unclear from the provided code\" rather than describing what projects like this usually contain.",
+  );
+  return parts.join("\n");
+}
+
 const REPAIR_SYSTEM_PROMPT = `You are fixing a markdown document that failed the renderer's validator.
 Fix ONLY the listed issues. Do not change the document's content or meaning.
 Output the corrected markdown only — no preamble, no wrapping code fences.`;
@@ -183,7 +207,7 @@ Output the corrected markdown only — no preamble, no wrapping code fences.`;
 export async function generateArchDoc(options) {
   const { projectRoot, manifest, docType, model, mock = false } = options;
 
-  const ctx = gatherContext(projectRoot, manifest, docType);
+  let ctx = gatherContext(projectRoot, manifest, docType);
 
   // ── Offline / --mock path: deterministic, no CLI, no repair loop needed. ──
   if (mock) {
@@ -201,7 +225,6 @@ export async function generateArchDoc(options) {
   }
 
   // ── Live path: drive the local `claude` CLI. ──
-  const contextStr = formatContextForLLM(ctx);
 
   let result;
   try {
@@ -209,20 +232,25 @@ export async function generateArchDoc(options) {
       model,
       cwd: projectRoot,
       system: SYSTEM_PROMPTS[docType],
-      userMessage: `Analyze this codebase and generate the documentation.\n\n${contextStr}`,
+      userMessage: userMessageFor(ctx, docType),
     });
   } catch (error) {
-    if (error instanceof ContextTooLargeError) {
-      const reducedCtx = gatherContext(projectRoot, manifest, docType, 40_000);
-      const reducedStr = formatContextForLLM(reducedCtx);
+    if (!(error instanceof ContextTooLargeError)) throw error;
+    // Too large: ask once more with half the budget, and report the files that were actually sent.
+    ctx = gatherContext(projectRoot, manifest, docType, REDUCED_MAX_TOKENS);
+    try {
       result = await callLLM({
         model,
         cwd: projectRoot,
         system: SYSTEM_PROMPTS[docType],
-        userMessage: `Analyze this codebase and generate the documentation.\n\n${reducedStr}`,
+        userMessage: userMessageFor(ctx, docType),
       });
-    } else {
-      throw error;
+    } catch (again) {
+      if (!(again instanceof ContextTooLargeError)) throw again;
+      throw new SelfdocsError(
+        `the model says the ${docType} context is too large, even at half the usual budget.`,
+        "Leave more of the repo out with --ignore=PATTERNS (or `ignore` in selfdocs.config.mjs), then build again.",
+      );
     }
   }
 

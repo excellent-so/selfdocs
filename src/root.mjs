@@ -36,28 +36,43 @@ export function detectFramework(root, projectType) {
         if (deps["vue"]) return "vue";
         if (deps["react"]) return "react";
         if (deps["svelte"]) return "svelte";
+        if (deps["@nestjs/core"]) return "nest";
         if (deps["express"]) return "express";
         if (deps["fastify"]) return "fastify";
         if (deps["hono"]) return "hono";
+        if (deps["koa"]) return "koa";
       }
     } catch {
       // ignore
     }
   }
   if (projectType === "python") {
-    try {
-      const pyprojectPath = join(root, "pyproject.toml");
-      if (existsSync(pyprojectPath)) {
-        const content = readFileSync(pyprojectPath, "utf-8");
-        if (content.includes("django")) return "django";
-        if (content.includes("fastapi")) return "fastapi";
-        if (content.includes("flask")) return "flask";
-      }
-    } catch {
-      // ignore
-    }
+    // Whichever of these the project declares its dependencies in.
+    const declared = ["pyproject.toml", "requirements.txt", "setup.py", "setup.cfg", "Pipfile"]
+      .map((f) => readText(join(root, f)).toLowerCase())
+      .join("\n");
+    for (const fw of ["django", "fastapi", "flask"]) if (new RegExp(`\\b${fw}\\b`).test(declared)) return fw;
+  }
+  if (projectType === "go") {
+    const gomod = readText(join(root, "go.mod"));
+    const GO_FRAMEWORKS = [
+      ["github.com/gin-gonic/gin", "gin"],
+      ["github.com/labstack/echo", "echo"],
+      ["github.com/gofiber/fiber", "fiber"],
+      ["github.com/go-chi/chi", "chi"],
+      ["github.com/gorilla/mux", "gorilla"],
+    ];
+    for (const [mod, name] of GO_FRAMEWORKS) if (gomod.includes(mod)) return name;
   }
   return null;
+}
+
+function readText(file) {
+  try {
+    return existsSync(file) ? readFileSync(file, "utf-8") : "";
+  } catch {
+    return "";
+  }
 }
 
 export function detectTestFramework(root, projectType) {

@@ -25,7 +25,7 @@ import { insertUserBlock, updateUserBlock, deleteBlock } from "./block-merge.mjs
 import { isClaudeCliAvailable } from "./llm.mjs";
 import { runBuild } from "./build.mjs";
 import { detectProjectType, detectFramework } from "./root.mjs";
-import { C, tildify } from "./lib.mjs";
+import { C, tildify, SelfdocsError } from "./lib.mjs";
 
 const MIME = {
   ".html": "text/html; charset=utf-8",
@@ -243,7 +243,7 @@ export function serve({ config, root, port, open = false, log = console.log }) {
         }
         runBuildRequest(body)
           .then((obj) => sendJson(res, 200, obj))
-          .catch((e) => sendJson(res, 400, { ok: false, error: String(e?.message ?? e) }))
+          .catch((e) => sendJson(res, 400, { ok: false, error: String(e?.message ?? e), hint: e?.hint || "" }))
           .finally(() => {
             building = false;
           });
@@ -352,30 +352,47 @@ export function serve({ config, root, port, open = false, log = console.log }) {
 
   // An explicit 0 means "ephemeral" (the OS picks a free port — tests use it);
   // only an ABSENT port falls through to $PORT / the default.
-  const startPort =
-    port === 0 || port === "0"
-      ? 0
-      : Number(port) || Number(process.env.PORT) || DEFAULT_PORT;
+  const startPort = port === undefined || port === null || port === "" ? parsePort(process.env.PORT, "PORT") ?? DEFAULT_PORT : parsePort(port, "--port");
 
   let active = startPort;
-  const onListen = () => {
+  // One listener for the one successful listen: a retry on a busy port must not print, or open, twice.
+  server.once("listening", () => {
+    active = server.address().port;
     log(`\n  ${C.b}selfdocs${C.x} → http://127.0.0.1:${active}\n  ${C.d}link a repo · generate its docs · annotate — all in the browser · Ctrl-C to stop${C.x}\n`);
     if (open) {
-      const opener = process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open";
-      execFile(opener, [`http://127.0.0.1:${active}`], () => {});
+      const url = `http://127.0.0.1:${active}`;
+      const [cmd, args] = process.platform === "darwin" ? ["open", [url]] : process.platform === "win32" ? ["cmd", ["/c", "start", "", url]] : ["xdg-open", [url]];
+      execFile(cmd, args, (err) => {
+        if (err) log(`  ${C.d}Couldn't open a browser. Open ${url} yourself.${C.x}\n`);
+      });
     }
-  };
+  });
   server.on("error", (e) => {
-    if (e.code === "EADDRINUSE" && active < startPort + 25) {
+    if (e.code === "EADDRINUSE" && startPort !== 0 && active < startPort + 25 && active < 65535) {
       active++;
-      server.listen(active, "127.0.0.1", onListen);
+      server.listen(active, "127.0.0.1");
       return;
     }
-    console.error(e.code === "EADDRINUSE" ? `\nNo free port found near ${startPort}.\n` : `server error: ${e.message}`);
+    console.error(
+      e.code === "EADDRINUSE"
+        ? `${C.r}selfdocs:${C.x} ports ${startPort} to ${active} are all in use.\n\n  Stop whatever holds them, or pick another with --port=N.`
+        : `${C.r}selfdocs:${C.x} the viewer couldn't listen on 127.0.0.1:${active} (${e.code || e.message}).\n\n  Pick another port with --port=N.`,
+    );
     process.exit(1);
   });
-  server.listen(active, "127.0.0.1", onListen);
+  server.listen(active, "127.0.0.1");
   return server;
+}
+
+/** A port from --port or PORT: a whole number from 0 to 65535, or a SelfdocsError saying so. Empty gives null. */
+export function parsePort(value, label) {
+  if (value === undefined || value === null || value === "") return null;
+  const s = String(value).trim();
+  const n = Number(s);
+  if (!/^\d+$/.test(s) || n > 65535) {
+    throw new SelfdocsError(`${label} must be a port number from 1 to 65535, not "${value}".`, `For example: selfdocs serve --port=${DEFAULT_PORT + 1}`);
+  }
+  return n;
 }
 
 /** Carry a doc's generation metadata through an annotation write. */

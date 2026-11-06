@@ -3,13 +3,22 @@
 // the stored blocks so your annotations survive. Writes everything under
 // `.selfdocs/` (manifest + one file per doc). This is the CLI `build` verb's engine.
 
+import fs from "node:fs";
 import { paths } from "./config.mjs";
 import { generateManifest } from "./manifest.mjs";
 import { generateArchDoc, computeManifestHash } from "./arch-generator.mjs";
 import { parseMarkdownToBlocks } from "./block-parser.mjs";
 import { mergeBlocks } from "./block-merge.mjs";
 import { loadBlocks, saveDocBlocks, saveManifest } from "./store.mjs";
-import { C, badge } from "./lib.mjs";
+import { C, badge, SelfdocsError } from "./lib.mjs";
+
+function isDirectory(p) {
+  try {
+    return fs.statSync(p).isDirectory();
+  } catch {
+    return false;
+  }
+}
 
 /**
  * @param {object}   o
@@ -23,8 +32,19 @@ import { C, badge } from "./lib.mjs";
 export async function runBuild({ config, root, types, mock = false, log = console.log }) {
   const P = paths(root);
 
+  if (!isDirectory(root)) {
+    throw new SelfdocsError(`${root} isn't a folder.`, "Run selfdocs in your project's folder, or pass --target=DIR with an existing directory.");
+  }
+
   log(`${C.d}scanning ${root}…${C.x}`);
   const manifest = generateManifest(root, config.ignore);
+  // Nothing to document: stop before writing anything or asking the model about an empty tree.
+  if (manifest.stats.total_files === 0) {
+    throw new SelfdocsError(
+      `found no files to document in ${root}.`,
+      "Run selfdocs in your project's folder, or pass --target=DIR. Files your .gitignore or --ignore leave out aren't scanned.",
+    );
+  }
   const manifestHash = computeManifestHash(manifest);
   saveManifest(P, { ...manifest, manifest_hash: manifestHash });
 

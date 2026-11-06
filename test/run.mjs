@@ -632,6 +632,8 @@ await t("the mock names a one-file directory in the singular", () => {
   assert(/1 file lives under `config`/.test(md), "a one-file directory reads '1 file lives under'");
   assert(!/\b1 file live under/.test(md), "never '1 file live under'");
   assert(/\d+ files live under/.test(md), "several files still read 'files live under'");
+  assert(!md.includes("(root)"), "the repo root is named in words, not as a `(root)/` directory");
+  assert(/### Repository root\n\n\d+ files? sits? at the top of the repository/.test(md), "the root gets its own component");
 });
 
 // ── 9. paths for people: ~/… under the home directory ────────────────────────
@@ -705,6 +707,7 @@ await t("the viewer wears the selfdocs mark and links nowhere but the repo", () 
 
 await t("the viewer's own CSS has no colour of its own and no text under 12px", () => {
   const css = ownCss();
+  assert(/\.sd-prose \.ex-table code \{ overflow-wrap: normal; \}/.test(css), "code in a table cell breaks only between words");
   assert(css.length > 1000, "found the viewer's own CSS after the kit block");
   const colours = css.match(/#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(/g);
   assert(!colours, `colours come from kit tokens only; found ${colours}`);
@@ -714,6 +717,259 @@ await t("the viewer's own CSS has no colour of its own and no text under 12px", 
   for (const m of css.matchAll(/font-size:\s*([\d.]+)(px|rem)/g)) {
     const px = m[2] === "rem" ? Number(m[1]) * 16 : Number(m[1]);
     assert(px >= 12, `font-size ${m[1]}${m[2]} is under 12px`);
+  }
+});
+
+// ── 9. the unhappy paths: one sentence, what to do, the right exit code ─────────
+const BIN = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "bin", "selfdocs.mjs");
+const SRC_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "src");
+
+/** Run the CLI with a clean environment (plus `env`) in `cwd`. */
+function cli(args, { cwd = os.tmpdir(), env = {} } = {}) {
+  const base = { HOME: os.tmpdir(), PATH: `${path.dirname(process.execPath)}:/usr/bin:/bin`, LANG: "C" };
+  return spawnSync(process.execPath, [BIN, ...args], { cwd, env: { ...base, ...env }, encoding: "utf8", timeout: 60_000 });
+}
+
+/** A stand-in claude CLI. `script` runs with `args` (argv) and `input` (stdin) in scope and prints the reply. */
+function standInClaude(dir, script) {
+  const bin = path.join(dir, "claude-standin.cjs");
+  fs.writeFileSync(
+    bin,
+    `#!/usr/bin/env node\nconst fs = require("fs"); const args = process.argv.slice(2);\nif (args[0] === "--version") { console.log("0.0.0"); process.exit(0); }\nlet input = ""; process.stdin.on("data", (c) => (input += c)); process.stdin.on("end", () => {\n${script}\n});\n`,
+  );
+  fs.chmodSync(bin, 0o755);
+  return bin;
+}
+
+const ARCH_DOC = "# Architecture Overview\n\n## System Overview\n\nA draft.\n\n## Technology Stack\n\n| Layer | Technology |\n| --- | --- |\n| Language | JavaScript |\n\n## System Components\n\nThe `src/` tree.\n";
+
+await t("the CLI answers --help, --version and mistakes in one sentence, with no stack trace", () => {
+  const help = cli(["build", "--help"]);
+  assert(help.status === 0 && help.stdout.includes("Commands"), "build --help prints the help and builds nothing");
+  const ver = cli(["--version"]);
+  assert(ver.status === 0 && ver.stdout.trim() === JSON.parse(fs.readFileSync(path.join(SRC_DIR, "..", "package.json"), "utf8")).version, ver.stdout);
+  for (const [args, says] of [
+    [["bogus"], `"bogus" isn't a selfdocs command`],
+    [["build", "--mokc"], "build doesn't take --mokc"],
+    [["build", "--type"], "--type needs a value"],
+    [["build", "--mock", "--type=nope"], "unknown doc type: nope"],
+    [["status", "--target=/no/such/dir"], "/no/such/dir isn't a folder"],
+    [["serve", "--port=99999"], "--port must be a port number"],
+  ]) {
+    const r = cli(args);
+    assert.equal(r.status, 1, `${args.join(" ")} exits 1`);
+    assert(r.stderr.includes(says), `${args.join(" ")} says "${says}": ${r.stderr}`);
+    assert(!/\n\s+at .+:\d+:\d+/.test(r.stderr), `${args.join(" ")} prints no stack trace: ${r.stderr}`);
+  }
+});
+
+await t("hints name the command the way it was run", () => {
+  const r = cli(["bogus"], { cwd: path.dirname(path.dirname(BIN)) });
+  assert(r.stderr.includes("See `node bin/selfdocs.mjs --help`"), `from a clone: ${r.stderr}`);
+  const n = cli(["bogus"], { env: { npm_command: "exec" } });
+  assert(n.stderr.includes("See `npx @excellent-so/selfdocs --help`"), `through npx: ${n.stderr}`);
+});
+
+await t("--type and --target take a value after a space too", () => {
+  const dir = freshRepo();
+  try {
+    const r = cli(["build", "--mock", "--type", "api", "--target", dir]);
+    assert.equal(r.status, 0, r.stderr);
+    assert(fs.existsSync(path.join(dir, ".selfdocs", "docs", "api.json")) && !fs.existsSync(path.join(dir, ".selfdocs", "docs", "schema.json")), "only api was built");
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+await t("an empty folder and a broken config each stop with what to do", () => {
+  const empty = fs.mkdtempSync(path.join(os.tmpdir(), "selfdocs-empty-"));
+  try {
+    const r = cli(["build", "--mock"], { cwd: empty });
+    assert(r.status === 1 && r.stderr.includes("found no files to document"), r.stderr);
+    assert(!fs.existsSync(path.join(empty, ".selfdocs")), "nothing is written for an empty folder");
+    fs.writeFileSync(path.join(empty, "selfdocs.config.json"), "{ not json");
+    const bad = cli(["status"], { cwd: empty });
+    assert(bad.status === 1 && bad.stderr.includes("couldn't read the config file") && bad.stderr.includes("Fix the file or delete it"), bad.stderr);
+  } finally {
+    fs.rmSync(empty, { recursive: true, force: true });
+  }
+});
+
+await t("a claude CLI that isn't signed in is reported with how to sign in", () => {
+  const dir = freshRepo();
+  try {
+    // The envelope claude 2.1 prints when it has no credentials.
+    const bin = standInClaude(dir, `console.log(JSON.stringify({ type: "result", is_error: true, result: "Not logged in · Please run /login" })); process.exit(1);`);
+    const r = cli(["build", "--type=architecture"], { cwd: dir, env: { SELFDOCS_CLAUDE_BIN: bin } });
+    assert.equal(r.status, 1);
+    assert(r.stderr.includes("isn't signed in") && r.stderr.includes("claude auth login"), r.stderr);
+    assert(!/\n\s+at .+:\d+:\d+/.test(r.stderr), "no stack trace");
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+await t("claude is run isolated, and asked again without a flag an older CLI rejects", () => {
+  const dir = freshRepo();
+  try {
+    const log = path.join(dir, "calls.jsonl");
+    const bin = standInClaude(
+      dir,
+      `fs.appendFileSync(${JSON.stringify(log)}, JSON.stringify(args) + "\\n");
+       if (args.includes("--safe-mode")) { process.stderr.write("error: unknown option '--safe-mode'\\n"); process.exit(1); }
+       console.log(JSON.stringify({ type: "result", is_error: false, result: ${JSON.stringify(ARCH_DOC)}, usage: { input_tokens: 5, cache_read_input_tokens: 100, output_tokens: 7 } }));`,
+    );
+    const r = cli(["build", "--type=architecture"], { cwd: dir, env: { SELFDOCS_CLAUDE_BIN: bin } });
+    assert.equal(r.status, 0, r.stderr);
+    const calls = fs.readFileSync(log, "utf8").trim().split("\n").map((l) => JSON.parse(l));
+    assert.equal(calls.length, 2, "one rejected call, one retry");
+    assert(calls[0].includes("--safe-mode") && calls[0].includes("--strict-mcp-config"), "first asks for no MCP servers and no user setup");
+    assert(!calls[1].includes("--safe-mode") && calls[1].includes("--strict-mcp-config"), "the retry drops only the rejected flag");
+    assert(calls[1][calls[1].indexOf("--disallowedTools") + 1] === "*", "every tool stays disallowed");
+    const doc = JSON.parse(fs.readFileSync(path.join(dir, ".selfdocs", "docs", "architecture.json"), "utf8"));
+    assert.equal(doc.input_tokens, 105, "cached prompt tokens count toward the input");
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+await t("a context the model calls too large is retried once at half, then stops with what to do", async () => {
+  const dir = freshRepo();
+  try {
+    // Pad the repo so the architecture context is well over 160k characters.
+    for (let i = 0; i < 120; i++) {
+      fs.mkdirSync(path.join(dir, "src", `mod${i}`), { recursive: true });
+      fs.writeFileSync(path.join(dir, "src", `mod${i}`, "index.js"), "// padding\n".repeat(400));
+    }
+    const lens = path.join(dir, "lens.txt");
+    const once_ = standInClaude(
+      dir,
+      `fs.appendFileSync(${JSON.stringify(lens)}, input.length + "\\n");
+       const tooBig = input.length > 200000;
+       console.log(JSON.stringify({ type: "result", is_error: tooBig, result: tooBig ? "Prompt is too long" : ${JSON.stringify(ARCH_DOC)} }));`,
+    );
+    const r = cli(["build", "--type=architecture"], { cwd: dir, env: { SELFDOCS_CLAUDE_BIN: once_ } });
+    assert.equal(r.status, 0, r.stderr);
+    const [first, second] = fs.readFileSync(lens, "utf8").trim().split("\n").map(Number);
+    assert(first > 300000 && second < first / 2 + 5000, `the retry sends about half: ${first} then ${second}`);
+    const doc = JSON.parse(fs.readFileSync(path.join(dir, ".selfdocs", "docs", "architecture.json"), "utf8"));
+    const m = generateManifest(dir);
+    const { gatherContext } = await import("../src/context.mjs");
+    assert.equal(doc.files_analyzed, gatherContext(dir, m, "architecture", 40_000).files.length, "files_analyzed counts the files the retry sent");
+
+    const always = standInClaude(dir, `console.log(JSON.stringify({ type: "result", is_error: true, result: "Prompt is too long" }));`);
+    const r2 = cli(["build", "--type=architecture"], { cwd: dir, env: { SELFDOCS_CLAUDE_BIN: always } });
+    assert(r2.status === 1 && r2.stderr.includes("too large, even at half") && r2.stderr.includes("--ignore"), r2.stderr);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+await t("the scan doesn't follow a symlinked directory or a link that leaves the repo", () => {
+  const dir = freshRepo();
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), "selfdocs-outside-"));
+  try {
+    fs.writeFileSync(path.join(outside, "secret.txt"), "not yours\n");
+    fs.symlinkSync("..", path.join(dir, "src", "loop"));
+    fs.symlinkSync(path.join(outside, "secret.txt"), path.join(dir, "leak.txt"));
+    fs.symlinkSync("package.json", path.join(dir, "pkg-link.json"));
+    const { files } = scanDirectory(dir, { ignore: createIgnore(dir) });
+    const p = files.map((f) => f.path);
+    assert(!p.some((x) => x.startsWith("src/loop")), "a link to a parent is not walked");
+    assert(!p.includes("leak.txt"), "a link out of the repo is skipped");
+    assert(p.includes("pkg-link.json"), "a link to a file inside the repo counts");
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+    fs.rmSync(outside, { recursive: true, force: true });
+  }
+});
+
+await t("context skips binary files, finds .mjs, Go and Python entry points, and redacts .env values", async () => {
+  const { gatherContext } = await import("../src/context.mjs");
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "selfdocs-ctx-"));
+  try {
+    const put = (rel, body) => {
+      fs.mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true });
+      fs.writeFileSync(path.join(dir, rel), body);
+    };
+    put("go.mod", "module example.com/app\n\nrequire github.com/gin-gonic/gin v1.9.0\n");
+    put("hello.go", "package main\n");
+    put("hello_test.go", "package main\n");
+    put("users/doc.go", "// Package users ...\npackage users\n");
+    put("users/routers.go", "package users\n");
+    put("bin/tool.mjs", "#!/usr/bin/env node\n");
+    put("src/middleware/model.onnx", Buffer.from([0x08, 0x00, 0x12, 0x00, 0x41]));
+    put("config/.env.js", "export API_KEY=abc123\nlower_key = shh\n");
+    const m = generateManifest(dir);
+    assert.equal(m.markers.framework, "gin", "gin is detected from go.mod");
+    const arch = gatherContext(dir, m, "architecture").files.map((f) => f.path);
+    for (const want of ["go.mod", "hello.go", "users/doc.go", "bin/tool.mjs"]) assert(arch.includes(want), `architecture reads ${want}: ${arch}`);
+    assert(!arch.includes("hello_test.go"), "tests aren't entry points");
+    assert(gatherContext(dir, m, "api").files.some((f) => f.path === "users/routers.go"), "routers.go is an API file");
+    assert(!gatherContext(dir, m, "api").files.some((f) => f.path.endsWith(".onnx")), "a binary file is never sent");
+    const env = gatherContext(dir, m, "integrations").files.find((f) => f.path === "config/.env.js");
+    assert(env && !env.content.includes("abc123") && !env.content.includes("shh"), `values redacted: ${env && env.content}`);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+await t("a doc whose patterns match nothing reads the entry points and routes, and the prompt says to stay inside them", async () => {
+  const { gatherContext } = await import("../src/context.mjs");
+  const dir = freshRepo();
+  try {
+    fs.rmSync(path.join(dir, "src", "workers"), { recursive: true, force: true }); // no workers, queues or jobs left
+    const m = generateManifest(dir);
+    const ctx = gatherContext(dir, m, "data-flow");
+    assert(ctx.fallback, "data-flow fell back");
+    const got = ctx.files.map((f) => f.path);
+    assert(got.includes("src/index.js") && got.includes("src/routes/users.js"), `entry points and routes: ${got}`);
+    assert(/^\s*Dockerfile$|^package\.json$/m.test(ctx.directoryTree) && ctx.directoryTree.includes("users.js"), "the tree lists files, not only directories");
+
+    const seen = path.join(dir, "prompt.txt");
+    const bin = standInClaude(dir, `fs.writeFileSync(${JSON.stringify(seen)}, input); console.log(JSON.stringify({ type: "result", is_error: false, result: "# Data Flow Documentation\\n\\n## Overview\\n\\nRequests go to \`src/routes/users.js\`.\\n" }));`);
+    const r = cli(["build", "--type=data-flow"], { cwd: dir, env: { SELFDOCS_CLAUDE_BIN: bin } });
+    assert.equal(r.status, 0, r.stderr);
+    const prompt = fs.readFileSync(seen, "utf8");
+    assert(prompt.includes("No file matched what a data-flow doc usually reads"), "the prompt says why these files were sent");
+    assert(prompt.trimEnd().endsWith("rather than describing what projects like this usually contain."), "the prompt ends with the grounding rule");
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+await t("python frameworks are detected from requirements.txt", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "selfdocs-py-"));
+  try {
+    fs.writeFileSync(path.join(dir, "requirements.txt"), "Flask==3.0\nrequests\n");
+    assert.equal(detectProjectType(dir), "python");
+    assert.equal(detectFramework(dir, "python"), "flask");
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+await t("a busy port moves the viewer to the next one and announces it once", async () => {
+  const dir = freshFixture();
+  const blocker = (await import("node:http")).createServer();
+  let server;
+  try {
+    blocker.listen(0, "127.0.0.1");
+    await once(blocker, "listening");
+    const busy = blocker.address().port;
+    const lines = [];
+    const { config, root } = await loadConfig({ cwd: dir });
+    server = serve({ config, root, port: busy, open: false, log: (l) => lines.push(l) });
+    // Not events.once: that rejects on the first EADDRINUSE, which serve handles by moving up a port.
+    await new Promise((r) => server.once("listening", r));
+    await new Promise((r) => setTimeout(r, 50));
+    assert.equal(server.address().port, busy + 1, "moved one port up");
+    assert.equal(lines.filter((l) => l.includes("http://127.0.0.1:")).length, 1, `announced once: ${JSON.stringify(lines)}`);
+    assert(lines[0].includes(`:${busy + 1}`), "the announced port is the one it listens on");
+  } finally {
+    if (server) server.close();
+    blocker.close();
+    fs.rmSync(dir, { recursive: true, force: true });
   }
 });
 

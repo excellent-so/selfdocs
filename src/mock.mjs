@@ -19,11 +19,15 @@ function basename(p) {
   return String(p).split("/").pop() || String(p);
 }
 
+// The key topDirs uses for files at the top of the repo, and how the docs name it.
+const ROOT = "";
+const dirLabel = (d) => (d === ROOT ? "the repository root" : `\`${d}/\``);
+
 /** Directory → file-count, most-populated first. */
 function topDirs(manifest, limit = 6) {
   const counts = new Map();
   for (const f of manifest.files) {
-    const seg = f.path.includes("/") ? f.path.split("/")[0] : "(root)";
+    const seg = f.path.includes("/") ? f.path.split("/")[0] : ROOT;
     counts.set(seg, (counts.get(seg) || 0) + 1);
   }
   return [...counts.entries()]
@@ -88,7 +92,7 @@ function architecture(manifest) {
     "",
     "## System Overview",
     "",
-    `\`${f.name}\` is a ${f.type} project${f.framework ? ` built on \`${f.framework}\`` : ""}. The scan found ${f.fileCount} files across ${f.dirCount} directories, with the bulk of the source under ${dirs.slice(0, 3).map(([d]) => `\`${d}/\``).join(", ") || "the repository root"}.`,
+    `\`${f.name}\` is a ${f.type} project${f.framework ? ` built on \`${f.framework}\`` : ""}. The scan found ${f.fileCount} files across ${f.dirCount} directories, with the bulk of the source under ${dirs.slice(0, 3).map(([d]) => dirLabel(d)).join(", ") || "the repository root"}.`,
     "",
     "This overview is a scaffold: it names what the scanner can see. Once you connect a model, selfdocs replaces these paragraphs with prose grounded in the actual code, and your own notes stay attached.",
     "",
@@ -101,9 +105,11 @@ function architecture(manifest) {
     "## System Components",
     "",
     ...dirs.flatMap(([dir, count]) => [
-      `### \`${dir}\``,
+      dir === ROOT ? "### Repository root" : `### \`${dir}\``,
       "",
-      `${count} ${count === 1 ? "file lives" : "files live"} under \`${dir}\`. Its responsibility is inferred from its name and contents; verify against the code before relying on it.`,
+      dir === ROOT
+        ? `${count} ${count === 1 ? "file sits" : "files sit"} at the top of the repository, outside any directory: manifests, config and entry points, going by their names. Verify against the code before relying on it.`
+        : `${count} ${count === 1 ? "file lives" : "files live"} under \`${dir}\`. Its responsibility is inferred from its name and contents; verify against the code before relying on it.`,
       "",
     ]),
     "## Key Design Patterns",

@@ -1,27 +1,84 @@
 // selfdocs — CLI: parses the verb and its flags and runs it (npx @excellent-so/selfdocs …).
-// Verbs: build · serve · open · status · doctor · init · help.
+// Verbs: build · serve · open · status · doctor · init · help · version.
+// Every failure a person can act on is a SelfdocsError: one sentence and what to do, no stack trace.
 
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadConfig, paths, DOC_TYPES, docTitle } from "./config.mjs";
-import { C, badge } from "./lib.mjs";
+import { C, badge, SelfdocsError } from "./lib.mjs";
 import { DEFAULT_MODEL } from "./llm.mjs";
 
 const PKG_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 // The project page the scaffolded config points at. Read from package.json so the two never disagree.
 const PKG = JSON.parse(fs.readFileSync(path.join(PKG_ROOT, "package.json"), "utf8"));
 
-function parseFlags(argv) {
+// The flags each command takes. `true` takes a value (--type=api or --type api); `false` is a switch.
+const FLAGS = {
+  build: { type: true, mock: false, target: true, ignore: true, model: true },
+  serve: { target: true, port: true },
+  open: { target: true, port: true },
+  status: { target: true },
+  doctor: { target: true },
+  init: { force: false },
+};
+
+/** How to run selfdocs again, the way it was started, so a hint works as typed: npx, a clone, or the installed command. */
+function self() {
+  if (process.env.npm_command === "exec") return `npx ${PKG.name}`;
+  const script = process.argv[1] || "";
+  if (path.basename(script) === "selfdocs.mjs") {
+    const rel = path.relative(process.cwd(), script);
+    return `node ${rel && !rel.startsWith("..") ? rel : script}`; // relative inside the clone, absolute from elsewhere
+  }
+  return "selfdocs";
+}
+
+function parseFlags(cmd, argv) {
+  const known = FLAGS[cmd] || {};
   const f = {};
   const positionals = [];
-  for (const a of argv) {
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (a === "-h" || a === "--help") {
+      f.help = true;
+      continue;
+    }
     const m = a.match(/^--([^=]+)(?:=(.*))?$/);
-    if (m) f[m[1]] = m[2] === undefined ? true : m[2];
-    else positionals.push(a);
+    if (!m) {
+      positionals.push(a);
+      continue;
+    }
+    const [, name, value] = m;
+    if (!(name in known)) {
+      const list = Object.keys(known).map((k) => `--${k}`).join(", ");
+      throw new SelfdocsError(`${cmd} doesn't take --${name}.`, list ? `It takes ${list}. See \`${self()} --help\`.` : `See \`${self()} --help\`.`);
+    }
+    if (!known[name]) {
+      f[name] = true; // a switch
+      continue;
+    }
+    // A value flag: --name=value, or --name value.
+    let v = value;
+    if (v === undefined && i + 1 < argv.length && !argv[i + 1].startsWith("-")) v = argv[++i];
+    if (v === undefined || v === "") {
+      throw new SelfdocsError(`--${name} needs a value.`, `For example: ${self()} ${cmd} ${FLAG_EXAMPLES[name] || `--${name}=VALUE`}`);
+    }
+    f[name] = v;
   }
-  return { f, positionals };
+  if (positionals.length) {
+    throw new SelfdocsError(`${cmd} doesn't take "${positionals[0]}".`, `Flags take the form --name=value. See \`${self()} --help\`.`);
+  }
+  return f;
 }
+
+const FLAG_EXAMPLES = {
+  type: "--type=architecture,api",
+  target: "--target=../my-repo",
+  ignore: '--ignore="examples/**,*.generated.ts"',
+  model: `--model=${DEFAULT_MODEL}`,
+  port: "--port=4631",
+};
 
 function overridesFromFlags(f) {
   const o = {};
@@ -31,8 +88,22 @@ function overridesFromFlags(f) {
   return o;
 }
 
-async function setup(f) {
-  return loadConfig({ overrides: overridesFromFlags(f) });
+/** Load the config and check the target is a folder (doctor reports a bad target instead of stopping). */
+async function setup(f, { requireTarget = true } = {}) {
+  const loaded = await loadConfig({ overrides: overridesFromFlags(f) });
+  if (requireTarget) {
+    let isDir = false;
+    try {
+      isDir = fs.statSync(loaded.root).isDirectory();
+    } catch {
+      isDir = false;
+    }
+    if (!isDir) {
+      const from = f.target ? "--target" : process.env.SELFDOCS_TARGET ? "SELFDOCS_TARGET" : loaded.file ? `the target in ${loaded.file}` : "the target";
+      throw new SelfdocsError(`${loaded.root} isn't a folder (from ${from}).`, "Point --target=DIR at an existing directory.");
+    }
+  }
+  return loaded;
 }
 
 /** Which doc types this invocation targets: --type=X (repeatable via comma) or config. */
@@ -40,9 +111,8 @@ function resolveTypes(f, config) {
   if (f.type) {
     const asked = String(f.type).split(",").map((s) => s.trim()).filter(Boolean);
     const unknown = asked.filter((t) => !DOC_TYPES.includes(t));
-    if (unknown.length) {
-      console.error(`Unknown doc type(s): ${unknown.join(", ")}. Known: ${DOC_TYPES.join(", ")}.`);
-      process.exit(1);
+    if (unknown.length || !asked.length) {
+      throw new SelfdocsError(`unknown doc type${unknown.length === 1 ? "" : "s"}: ${unknown.join(", ") || "(none given)"}.`, `The doc types are ${DOC_TYPES.join(", ")}.`);
     }
     return asked;
   }
@@ -51,7 +121,15 @@ function resolveTypes(f, config) {
 
 async function main() {
   const [cmd = "help", ...rest] = process.argv.slice(2);
-  const { f } = parseFlags(rest);
+
+  if (cmd === "help" || cmd === "--help" || cmd === "-h") return printHelp();
+  if (cmd === "version" || cmd === "--version" || cmd === "-v") return console.log(PKG.version);
+  if (!FLAGS[cmd]) {
+    throw new SelfdocsError(`"${cmd}" isn't a selfdocs command.`, `The commands are ${Object.keys(FLAGS).join(", ")}. See \`${self()} --help\`.`);
+  }
+
+  const f = parseFlags(cmd, rest);
+  if (f.help) return printHelp();
 
   switch (cmd) {
     case "build": {
@@ -60,34 +138,19 @@ async function main() {
       const mock = Boolean(f.mock);
 
       if (!mock) {
-        const { isClaudeCliAvailable } = await import("./llm.mjs");
-        if (!(await isClaudeCliAvailable())) {
-          console.error(
-            `${C.r}selfdocs:${C.x} the \`claude\` CLI was not found on your PATH.\n\n` +
-              `  Generation drives the local Claude CLI. Install it and sign in, or run\n` +
-              `  offline with the deterministic generator:\n\n` +
-              `    ${C.c}selfdocs build --mock${C.x}\n\n` +
-              `  (Point at a specific binary with SELFDOCS_CLAUDE_BIN.)`,
-          );
-          process.exit(1);
-        }
+        const { isClaudeCliAvailable, ClaudeCliMissingError } = await import("./llm.mjs");
+        if (!(await isClaudeCliAvailable())) throw new ClaudeCliMissingError();
       }
 
       const { runBuild } = await import("./build.mjs");
-      try {
-        const { results } = await runBuild({ config, root, types, mock });
-        const P = paths(root);
-        console.log(
-          `\n${badge("ok")} wrote ${results.length} doc${results.length === 1 ? "" : "s"} to ${C.d}${path.relative(process.cwd(), P.DOCS_DIR) || P.DOCS_DIR}${C.x}` +
-            `\n  view them: ${C.c}selfdocs open${C.x}`,
-        );
-      } catch (e) {
-        if (e?.name === "ClaudeCliMissingError") {
-          console.error(`\n${C.r}selfdocs:${C.x} ${e.message}`);
-          process.exit(1);
-        }
-        throw e;
-      }
+      const { results } = await runBuild({ config, root, types, mock });
+      const P = paths(root);
+      const warned = results.filter((r) => !r.result.validation.valid).map((r) => r.docType);
+      console.log(
+        `\n${badge("ok")} wrote ${results.length} doc${results.length === 1 ? "" : "s"} to ${C.d}${path.relative(process.cwd(), P.DOCS_DIR) || P.DOCS_DIR}${C.x}` +
+          (warned.length ? `\n${badge("warn")} ${warned.join(", ")} still ${warned.length === 1 ? "has" : "have"} markdown problems after two repairs; the viewer shows ${warned.length === 1 ? "it" : "them"} as drafted` : "") +
+          `\n  view them: ${C.c}${self()} open${f.target ? ` --target=${f.target}` : ""}${C.x}`,
+      );
       break;
     }
 
@@ -106,7 +169,7 @@ async function main() {
     }
 
     case "doctor": {
-      const { config, root, file } = await setup(f);
+      const { config, root, file } = await setup(f, { requireTarget: false });
       await cmdDoctor(config, root, file);
       break;
     }
@@ -114,16 +177,12 @@ async function main() {
     case "init": {
       const target = path.join(process.cwd(), "selfdocs.config.mjs");
       if (fs.existsSync(target) && !f.force) {
-        console.error(`${target} already exists (pass --force to overwrite).`);
-        process.exit(1);
+        throw new SelfdocsError(`${target} already exists.`, "Edit it, or pass --force to overwrite it with the starter config.");
       }
       fs.writeFileSync(target, scaffoldConfig());
-      console.log(`${badge("ok")} wrote ${path.relative(process.cwd(), target)}\n  Edit it, then run: ${C.c}selfdocs build${C.x}`);
+      console.log(`${badge("ok")} wrote ${path.relative(process.cwd(), target)}\n  Edit it, then run: ${C.c}${self()} build${C.x}`);
       break;
     }
-
-    default:
-      printHelp();
   }
 }
 
@@ -217,15 +276,20 @@ ${C.b}Commands${C.x}
       --mock           use the deterministic OFFLINE generator (no claude, no network)
       --target=DIR     the repo to document (default: cwd / config dir)
       --ignore=a,b     extra .gitignore-style patterns to exclude from the scan
-      --model=NAME     model for the claude CLI
+      --model=NAME     model for the claude CLI (default ${DEFAULT_MODEL})
 
   ${C.c}serve${C.x}      host the web viewer (annotations save to .selfdocs/docs/)
+      --target=DIR     the repo to show (the viewer can link another)
       --port=N         default ${C.d}4630${C.x}; honors \$PORT; auto-advances if busy (up to +25)
-  ${C.c}open${C.x}       serve + open the viewer in your browser
+  ${C.c}open${C.x}       serve + open the viewer in your browser (same flags as serve)
 
-  ${C.c}status${C.x}     what's generated, block counts, annotation counts
-  ${C.c}doctor${C.x}     claude CLI availability, config, and target detection
-  ${C.c}init${C.x}       scaffold a selfdocs.config.mjs
+  ${C.c}status${C.x}     what's generated, block counts, annotation counts (--target=DIR)
+  ${C.c}doctor${C.x}     claude CLI availability, config, and target detection (--target=DIR)
+  ${C.c}init${C.x}       scaffold a selfdocs.config.mjs in this directory
+      --force          overwrite an existing one
+
+  ${C.c}--help${C.x}     this help (also after any command)
+  ${C.c}--version${C.x}  the version
 
 ${C.b}Doc types${C.x}
   ${DOC_TYPES.map((t) => `${t.padEnd(13)} ${docTitle(t)}`).join("\n  ")}
@@ -236,11 +300,19 @@ ${C.b}Examples${C.x}
   selfdocs build --type=architecture,api    # just two
   selfdocs open                             # read them, leave notes
 
-Zero runtime dependencies. Fully local — no cloud, no account. Output lives in
-.selfdocs/ (gitignore it — see the README). Config: selfdocs.config.{mjs,js,json}.`);
+Zero runtime dependencies and no service of its own: a real draft goes to the model
+through your claude CLI, and --mock stays on this machine. Output lives in .selfdocs/
+(see the README). Config: selfdocs.config.{mjs,js,cjs,json}.`);
 }
 
 main().catch((e) => {
-  console.error(`${C.r}selfdocs error:${C.x} ${e?.stack ?? e?.message ?? e}`);
+  // A SelfdocsError says what happened and what to do. Anything else is a bug: its message, and the stack
+  // only when SELFDOCS_DEBUG is set.
+  const msg = String(e?.message ?? e);
+  console.error(`${C.r}selfdocs:${C.x} ${msg}`);
+  if (e?.hint) console.error(`\n  ${e.hint}`);
+  if (!(e instanceof SelfdocsError)) {
+    console.error(process.env.SELFDOCS_DEBUG ? `\n${e?.stack ?? ""}` : `\n  This looks like a bug in selfdocs. Run again with SELFDOCS_DEBUG=1 for the details, and report it at ${PKG.bugs.url}.`);
+  }
   process.exit(1);
 });

@@ -699,6 +699,9 @@ dialog.ex-dialog::backdrop { background: rgb(0 0 0 / 0.32); }
 .sd-prose hr { margin: 24px 0; border: 0; border-top: 1px solid var(--color-border); }
 .sd-prose .ex-table-frame { margin: 0 0 16px; }
 .sd-prose .ex-table td { font-size: var(--text-sm); }
+/* In a table, code breaks only where words do: breaking anywhere lets a column shrink to one letter ("DELET E").
+   A long path widens its column instead, and the table scrolls inside its frame. */
+.sd-prose .ex-table code { overflow-wrap: normal; }
 
 /* ── Notes: yours, kept through every regeneration ─────────────────────── */
 .sd-addnote { margin: -6px 0 10px; }
@@ -828,7 +831,8 @@ function toast(msg, kind) {
   el.innerHTML = (kind === "error" ? '<span class="ex-glyph ex-glyph--cross" aria-hidden="true"></span>' : "") + `<span>${esc(msg)}</span>`;
   el.classList.add("is-shown");
   clearTimeout(el._t);
-  el._t = setTimeout(() => el.classList.remove("is-shown"), kind === "error" ? 4000 : 1800);
+  // An error stays long enough to read: a second per ten words, and never less than four.
+  el._t = setTimeout(() => el.classList.remove("is-shown"), kind === "error" ? Math.max(4000, String(msg).split(/\s+/).length * 400) : 1800);
 }
 
 // The kit's command pill: copy, show "Copied" for 1.6 s, then go back.
@@ -1168,7 +1172,7 @@ async function doGenerate(types) {
   try {
     const r = await fetch("/api/build", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
     const j = await r.json().catch(() => ({ ok: false, error: "bad response" }));
-    if (!j.ok) throw new Error(j.error || ("HTTP " + r.status));
+    if (!j.ok) throw new Error([j.error || ("HTTP " + r.status), j.hint].filter(Boolean).join(" "));
     state.building = false;
     await fetchAll();
     const fg = firstGeneratedType();
@@ -1242,16 +1246,22 @@ function focusEditor() {
   };
 }
 
+// A write that fails shows why in the toast and returns null; the editor stays open with the text in it.
 async function api(method, body) {
-  const r = await fetch("/api/blocks", { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
-  const j = await r.json().catch(() => ({ ok: false, error: "bad response" }));
-  if (!j.ok) { toast("Couldn't save: " + (j.error || r.status), "error"); throw new Error(j.error || r.status); }
-  return j;
+  try {
+    const r = await fetch("/api/blocks", { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+    const j = await r.json().catch(() => ({ ok: false, error: "bad response" }));
+    if (!j.ok) { toast("Couldn't save: " + (j.error || r.status), "error"); return null; }
+    return j;
+  } catch (e) {
+    toast("Couldn't save: " + e.message + ". Is selfdocs serve still running?", "error");
+    return null;
+  }
 }
 async function saveAdd(anchor) {
   const content = $("#editorInput").value.trim();
   if (!content) { toast("The note is empty"); return; }
-  await api("POST", { docType: state.active, after_anchor: anchor, content });
+  if (!(await api("POST", { docType: state.active, after_anchor: anchor, content }))) return;
   state.editing = null;
   await load();
   toast("Note saved");
@@ -1259,14 +1269,14 @@ async function saveAdd(anchor) {
 async function saveEdit(id) {
   const content = $("#editorInput").value.trim();
   if (!content) { toast("The note is empty"); return; }
-  await api("PATCH", { docType: state.active, id, content });
+  if (!(await api("PATCH", { docType: state.active, id, content }))) return;
   state.editing = null;
   await load();
   toast("Note updated");
 }
 async function delNote(id) {
   if (!confirm("Delete this note? It can't be undone.")) return;
-  await api("DELETE", { docType: state.active, id });
+  if (!(await api("DELETE", { docType: state.active, id }))) return;
   await load();
   toast("Note deleted");
 }

@@ -24,7 +24,8 @@ wasted effort if the change doesn't fit the project's direction.
    ```
 
    Both must pass. They're offline and have no dependencies, so there's no setup: they
-   never touch the `claude` CLI or the network (generation runs through `--mock`).
+   never touch the real `claude` CLI or the network (generation runs through `--mock`,
+   or a small stand-in `claude` script the test writes). CI runs both on Node 20 and 22.
 
 4. Open a pull request with a short description of what changed and why.
 
