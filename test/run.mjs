@@ -679,7 +679,7 @@ await t("the viewer carries the kit block and is light unless the reader picks d
   assert(a > 0 && b > a, "kit markers present, in order");
   const kit = VIEWER.slice(a, b);
   for (const token of ["--color-verified", "--color-returned", ".ex-btn", ".ex-shell", ".theme-dark"]) {
-    assert(kit.includes(token), `kit block has ${token} (run: npx @excellent-so/kit sync viewer/index.html --no-compat)`);
+    assert(kit.includes(token), `kit block has ${token} (run: npx @excellent-so/kit sync viewer/index.html --no-compat --fonts)`);
   }
   // The favicon is its own SVG document and follows the browser's tab bar; the page itself never keys on the OS.
   const page = VIEWER.replace(/<link rel="icon" href="[^"]*" \/>/, "");

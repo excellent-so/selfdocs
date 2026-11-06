@@ -51,7 +51,7 @@ The whole tool runs on Node built-ins by design.
 with:
 
 ```sh
-npx @excellent-so/kit sync viewer/index.html --no-compat
+npx @excellent-so/kit sync viewer/index.html --no-compat --fonts
 ```
 
 The viewer's own CSS sits after the block and uses only the kit's tokens: no colours of its own, nothing keyed

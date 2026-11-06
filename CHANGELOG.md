@@ -29,6 +29,8 @@ The first release.
   types, renders each doc, adds, edits and deletes notes, links a different repo and generates from the browser.
   Its writes refuse other origins. It's built on [@excellent-so/kit](https://github.com/excellent-so/kit) 0.2.1
   (MIT): light by default with dark as the reader's choice, ink and greys for every state.
+- The viewer embeds Geist and Geist Mono, so it looks the same on every machine and still makes no outside
+  requests.
 - **Its own mark**: a page with two lines and a cursor, drawn in ink on a 16-unit grid. It sits left of the name
   in the viewer's brand row, is the viewer's favicon (an inline SVG, dark on a light browser and light on a dark
   one) and heads the README (`docs/mark.svg`). The viewer's footer has the licence and a Code link to the repo,
