@@ -5,6 +5,8 @@
 Scans a repo and drafts five architecture docs with your local `claude` CLI, then serves them in a viewer. Your
 own notes survive every regeneration.
 
+Docs and how to use it: https://playbook.excellent.so/selfdocs
+
 ![The selfdocs viewer: the Architecture Overview of a small Express app, drafted offline, with one of your notes pinned under a paragraph](docs/screenshot.png)
 
 Regenerating a doc from scratch throws away the one thing worth keeping: the note someone wrote about why
